@@ -66,7 +66,9 @@
     "removeFrom": "Remove from {name}",
     "@removeFrom": {
         "placeholders": {
-            "name": { "type": "String" }
+            "name": {
+                "type": "String"
+            }
         }
     },
     "renameCategory": "Rename category",
@@ -99,5 +101,27 @@
     "typeInTheHourFormat": "Type in the hour format",
     "uninstall": "Uninstall",
     "wallpaper": "Wallpaper",
-    "withEllipsisAddTo": "Add to..."
+    "withEllipsisAddTo": "Add to...",
+    "newAppsCategory": "Category for new apps",
+    "newAppsCategoryDisabled": "Don't add new apps automatically",
+    "showSystemStats": "CPU / memory indicator",
+    "statsCpu": "CPU {value}%",
+    "@statsCpu": {
+        "placeholders": {
+            "value": {
+                "type": "String"
+            }
+        }
+    },
+    "statsMemory": "Mem {used}/{total}G",
+    "@statsMemory": {
+        "placeholders": {
+            "used": {
+                "type": "String"
+            },
+            "total": {
+                "type": "String"
+            }
+        }
+    }
 }

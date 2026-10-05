@@ -49,7 +49,23 @@ class _DateTimeWidgetState extends State<DateTimeWidget> {
 
     _dateFormat = DateFormat(widget._dateTimeFormatString, Platform.localeName);
     _now = DateTime.now();
-    _timer = Timer.periodic(widget.updateInterval ?? const Duration(seconds: 1), (_) => _refreshTime());
+    _schedule();
+  }
+
+  /// Formats without seconds only need a redraw when the minute changes (a 1 s redraw loop is
+  /// measurable CPU on a slow TV).
+  void _schedule() {
+    Duration interval = widget.updateInterval ??
+        (widget._dateTimeFormatString.contains('s') ? const Duration(seconds: 1) : const Duration(minutes: 1));
+    Duration delay = interval;
+    if (interval == const Duration(minutes: 1)) {
+      final now = DateTime.now();
+      delay = Duration(milliseconds: 60000 - (now.second * 1000 + now.millisecond) + 50);
+    }
+    _timer = Timer(delay, () {
+      _refreshTime();
+      _schedule();
+    });
   }
 
   @override

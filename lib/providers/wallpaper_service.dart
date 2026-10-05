@@ -31,6 +31,7 @@ class WallpaperService extends ChangeNotifier {
   final SettingsService _settingsService;
 
   late File _wallpaperFile;
+  late final Future<void> _ready;
 
   ImageProvider? _wallpaper;
 
@@ -44,7 +45,7 @@ class WallpaperService extends ChangeNotifier {
   WallpaperService(this._fLauncherChannel, this._settingsService) :
     _wallpaper = null
   {
-    _init();
+    _ready = _init();
   }
 
   Future<void> _init() async {
@@ -72,12 +73,34 @@ class WallpaperService extends ChangeNotifier {
     }
   }
 
-  Future<void> setGradient(FLauncherGradient fLauncherGradient) async {
+  bool get hasWallpaper => _wallpaper != null;
+
+  /// Sets a picture as wallpaper from encoded image bytes (PNG, JPEG, WebP...).
+  Future<void> setWallpaperBytes(Uint8List bytes) async {
+    await _ready;
+    await _wallpaperFile.writeAsBytes(bytes, flush: true);
+    _wallpaper = MemoryImage(bytes);
+    notifyListeners();
+  }
+
+  /// Removes the picture wallpaper; the selected gradient is shown again.
+  Future<void> clearWallpaper() async {
+    await _ready;
     if (await _wallpaperFile.exists()) {
       await _wallpaperFile.delete();
     }
+    _wallpaper = null;
+    notifyListeners();
+  }
 
-    _settingsService.setGradientUuid(fLauncherGradient.uuid);
+  Future<void> setGradient(FLauncherGradient fLauncherGradient) async {
+    await _ready;
+    if (await _wallpaperFile.exists()) {
+      await _wallpaperFile.delete();
+    }
+    _wallpaper = null;
+
+    await _settingsService.setGradientUuid(fLauncherGradient.uuid);
     notifyListeners();
   }
 }

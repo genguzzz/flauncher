@@ -18,12 +18,14 @@
 
 import 'dart:async';
 
+import 'package:flauncher/api_server.dart';
 import 'package:flauncher/database.dart';
 import 'package:flauncher/flauncher_channel.dart';
 import 'package:flauncher/providers/apps_service.dart';
 import 'package:flauncher/providers/launcher_state.dart';
 import 'package:flauncher/providers/network_service.dart';
 import 'package:flauncher/providers/settings_service.dart';
+import 'package:flauncher/providers/stats_service.dart';
 import 'package:flauncher/providers/wallpaper_service.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -40,20 +42,28 @@ Future<void> main() async {
   final fLauncherChannel = FLauncherChannel();
   final fLauncherDatabase = FLauncherDatabase(connect());
 
+  // Created eagerly (not lazily by the providers) because the control API uses them too.
+  final settingsService = SettingsService(sharedPreferences);
+  final appsService = AppsService(fLauncherChannel, fLauncherDatabase, settingsService);
+  final wallpaperService = WallpaperService(fLauncherChannel, settingsService);
+  final statsService = StatsService(fLauncherChannel, settingsService);
+
+  ApiServer(
+    settings: settingsService,
+    apps: appsService,
+    wallpaper: wallpaperService,
+    stats: statsService,
+    channel: fLauncherChannel,
+  ).start();
+
   runApp(MultiProvider(
       providers: [
-        ChangeNotifierProvider(
-            create: (_) => SettingsService(sharedPreferences),
-            lazy: false),
-        ChangeNotifierProvider(create: (_) => AppsService(fLauncherChannel, fLauncherDatabase)),
+        ChangeNotifierProvider.value(value: settingsService),
+        ChangeNotifierProvider.value(value: appsService),
         ChangeNotifierProvider(create: (_) => LauncherState()),
         ChangeNotifierProvider(create: (_) => NetworkService(fLauncherChannel)),
-        ChangeNotifierProvider(
-            create: (context) {
-              SettingsService settingsService = Provider.of(context, listen: false);
-              return WallpaperService(fLauncherChannel, settingsService);
-            }
-        ),
+        ChangeNotifierProvider.value(value: wallpaperService),
+        ChangeNotifierProvider.value(value: statsService),
       ],
       child: FLauncherApp()
     )

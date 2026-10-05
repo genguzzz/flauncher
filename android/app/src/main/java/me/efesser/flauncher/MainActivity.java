@@ -58,12 +58,16 @@ public class MainActivity extends FlutterActivity
     private final String APPS_EVENT_CHANNEL = "me.efesser.flauncher/event_apps";
     private final String NETWORK_EVENT_CHANNEL = "me.efesser.flauncher/event_network";
 
+    private final ExecutorService statsExecutor = Executors.newSingleThreadExecutor();
+    private SystemStats systemStats;
+
     @Override
     public void configureFlutterEngine(@NonNull FlutterEngine flutterEngine)
     {
         super.configureFlutterEngine(flutterEngine);
 
         BinaryMessenger messenger = flutterEngine.getDartExecutor().getBinaryMessenger();
+        systemStats = new SystemStats(this);
 
         new MethodChannel(messenger, METHOD_CHANNEL).setMethodCallHandler((call, result) -> {
             switch (call.method)
@@ -81,6 +85,21 @@ public class MainActivity extends FlutterActivity
                 case "checkForGetContentAvailability" -> result.success(checkForGetContentAvailability());
                 case "startAmbientMode" -> result.success(startAmbientMode());
                 case "getActiveNetworkInformation" -> result.success(getActiveNetworkInformation());
+                case "getSystemStats" -> statsExecutor.execute(() -> {
+                    Map<String, Object> stats;
+                    try {
+                        stats = systemStats.sample();
+                    } catch (Exception e) {
+                        stats = new HashMap<>();
+                        stats.put("error", e.toString());
+                    }
+                    final Map<String, Object> value = stats;
+                    runOnUiThread(() -> result.success(value));
+                });
+                case "releaseSystemStats" -> {
+                    statsExecutor.execute(() -> systemStats.release());
+                    result.success(null);
+                }
                 default -> throw new IllegalArgumentException();
             }
         });
@@ -274,8 +293,11 @@ public class MainActivity extends FlutterActivity
 
         String  applicationName = activityInfo.loadLabel(packageManager).toString(),
                 applicationVersionName = "";
+        long lastUpdateTime = 0;
         try {
-            applicationVersionName = packageManager.getPackageInfo(activityInfo.packageName, 0).versionName;
+            PackageInfo packageInfo = packageManager.getPackageInfo(activityInfo.packageName, 0);
+            applicationVersionName = packageInfo.versionName;
+            lastUpdateTime = packageInfo.lastUpdateTime;
         }
         catch (PackageManager.NameNotFoundException ignored) { }
 
@@ -284,6 +306,7 @@ public class MainActivity extends FlutterActivity
         appMap.put("packageName", activityInfo.packageName);
         appMap.put("version", applicationVersionName);
         appMap.put("sideloaded", sideloaded);
+        appMap.put("lastUpdateTime", lastUpdateTime);
 
         if (action != null) {
             appMap.put("action", action);

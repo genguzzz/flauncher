@@ -19,7 +19,7 @@
 import 'package:flauncher/widgets/rounded_switch_list_tile.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'package:flauncher/l10n/app_localizations.dart';
 
 import '../../providers/settings_service.dart';
 
@@ -59,6 +59,12 @@ class StatusBarPanelPage extends StatelessWidget {
             onChanged: (value) => settingsService.setShowTimeInStatusBar(value),
             title: Text(localizations.time),
             secondary: Icon(Icons.watch_later_outlined)
+          ),
+          RoundedSwitchListTile(
+            value: settingsService.showSystemStats,
+            onChanged: (value) => settingsService.setShowSystemStats(value),
+            title: Text(localizations.showSystemStats),
+            secondary: Icon(Icons.memory)
           ),
         ],
       );

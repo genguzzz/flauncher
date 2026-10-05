@@ -48,7 +48,7 @@ android {
     defaultConfig {
         applicationId "me.efesser.flauncher"
         compileSdk 35
-        minSdk 21
+        minSdkVersion flutter.minSdkVersion
         targetSdk 35
         versionCode flutterVersionCode.toInteger()
         versionName flutterVersionName
@@ -57,7 +57,9 @@ android {
     signingConfigs {
         debug {}
         release {
-            storeFile file("upload-keystore.jks")
+            // TV custom build: FLAUNCHER_KEYSTORE points at an existing keystore (see tv-build.sh).
+            def keystorePath = System.getenv('FLAUNCHER_KEYSTORE')
+            storeFile keystorePath ? file(keystorePath) : file("upload-keystore.jks")
             storePassword "${secretProperties['signing_keystore_password']}"
             keyAlias "${secretProperties['signing_key_alias']}"
             keyPassword "${secretProperties['signing_key_password']}"
@@ -67,12 +69,19 @@ android {
     buildTypes {
         debug {
             signingConfig signingConfigs.debug
+            manifestPlaceholders = [appDebuggable: "true"]
+        }
+        profile {
+            manifestPlaceholders = [appDebuggable: "false"]
         }
         release {
             minifyEnabled true
             shrinkResources true
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
             signingConfig signingConfigs.release
+            // The TV scripts use `run-as`, which needs android:debuggable in the manifest. It is set
+            // through a placeholder: buildType.debuggable would make Flutter build a JIT debug app.
+            manifestPlaceholders = [appDebuggable: System.getenv('FLAUNCHER_DEBUGGABLE') == 'true' ? "true" : "false"]
         }
     }
 
@@ -80,8 +89,14 @@ android {
         abi {
             // https://stackoverflow.com/a/39950584/21037183
             enable gradle.startParameter.taskNames.any { it.contains("assembleRelease") }
+            reset()
+            include "armeabi-v7a", "arm64-v8a", "x86_64"
             universalApk true
         }
+    }
+
+    lint {
+        disable 'HardcodedDebugMode'
     }
 
     compileOptions {

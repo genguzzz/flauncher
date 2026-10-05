@@ -1,0 +1,127 @@
+{
+    "aboutFlauncher": "关于 FLauncher",
+    "addCategory": "添加分类",
+    "addSection": "添加区块",
+    "alphabetical": "按字母",
+    "appCardHighlightAnimation": "应用卡片高亮动画",
+    "appInfo": "应用信息",
+    "appKeyClick": "按键音",
+    "applications": "应用",
+    "autoHideAppBar": "自动隐藏状态栏",
+    "backButtonAction": "返回键行为",
+    "category": "分类",
+    "categories": "分类",
+    "columnCount": "列数",
+    "date": "日期",
+    "dateAndTimeFormat": "日期和时间格式",
+    "delete": "删除",
+    "dialogOptionBackButtonActionDoNothing": "无操作",
+    "dialogOptionBackButtonActionShowScreensaver": "显示屏保",
+    "dialogOptionBackButtonActionShowClock": "显示时钟",
+    "dialogTextNoFileExplorer": "请先安装文件管理器以选择图片。",
+    "dialogTitleBackButtonAction": "选择返回键行为",
+    "disambiguateCategoryTitle": "{title}（分类）",
+    "@disambiguateCategoryTitle": {
+        "placeholders": {
+            "title": {
+                "type": "String"
+            }
+        }
+    },
+    "formattedDate": "日期预览：{dateString}",
+    "@formattedDate": {
+        "placeholders": {
+            "dateString": {
+                "type": "String"
+            }
+        }
+    },
+    "formattedTime": "时间预览：{timeString}",
+    "@formattedTime": {
+        "placeholders": {
+            "timeString": {
+                "type": "String"
+            }
+        }
+    },
+    "gradient": "渐变",
+    "grid": "网格",
+    "height": "高度",
+    "hide": "隐藏",
+    "hiddenApplications": "已隐藏的应用",
+    "launcherSections": "区块",
+    "layout": "布局",
+    "loading": "加载中",
+    "manual": "手动",
+    "modifySection": "修改区块",
+    "mustNotBeEmpty": "不能为空",
+    "name": "名称",
+    "newSection": "新区块",
+    "noDateFormatSpecified": "未指定日期格式",
+    "noTimeFormatSpecified": "未指定时间格式",
+    "nonTvApplications": "非 TV 应用",
+    "open": "打开",
+    "orSelectFormatSpecifiers": "或选择格式符",
+    "picture": "图片",
+    "removeFrom": "从 {name} 移除",
+    "@removeFrom": {
+        "placeholders": {
+            "name": {
+                "type": "String"
+            }
+        }
+    },
+    "renameCategory": "重命名分类",
+    "reorder": "排序",
+    "row": "行",
+    "rowHeight": "行高",
+    "save": "保存",
+    "spacer": "间隔",
+    "spacerMaxHeightRequirement": "必须大于 0 且不超过 500",
+    "statusBar": "状态栏",
+    "settings": "设置",
+    "show": "显示",
+    "showCategoryTitles": "显示分类标题",
+    "sort": "排序方式",
+    "systemSettings": "系统设置",
+    "textAboutDialog": "FLauncher 是一款开源的 Android TV 桌面。\n源代码：{repoUrl}。\n\nLogo 由 Katie (@fureturoe) 绘制，设计 @FXCostanzo。",
+    "@textAboutDialog": {
+        "placeholders": {
+            "repoUrl": {
+                "type": "String"
+            }
+        }
+    },
+    "textEmptyCategory": "此分类为空。",
+    "time": "时间",
+    "titleStatusBarSettingsPage": "选择状态栏显示的内容",
+    "tvApplications": "TV 应用",
+    "type": "类型",
+    "typeInTheDateFormat": "输入日期格式",
+    "typeInTheHourFormat": "输入时间格式",
+    "uninstall": "卸载",
+    "wallpaper": "壁纸",
+    "withEllipsisAddTo": "添加到…",
+    "newAppsCategory": "新应用加入的分类",
+    "newAppsCategoryDisabled": "不自动添加新应用",
+    "showSystemStats": "CPU / 内存指示",
+    "statsCpu": "CPU {value}%",
+    "@statsCpu": {
+        "placeholders": {
+            "value": {
+                "type": "String"
+            }
+        }
+    },
+    "statsMemory": "内存 {used}/{total}G",
+    "@statsMemory": {
+        "placeholders": {
+            "used": {
+                "type": "String"
+            },
+            "total": {
+                "type": "String"
+            }
+        }
+    }
+}

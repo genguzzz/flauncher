@@ -24,7 +24,7 @@ import 'package:flauncher/widgets/application_info_panel.dart';
 import 'package:flauncher/widgets/ensure_visible.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'package:flauncher/l10n/app_localizations.dart';
 
 import '../../models/app.dart';
 import '../../models/category.dart';
@@ -136,12 +136,27 @@ class _AppListItem extends StatefulWidget
 class _AppListItemState extends State<_AppListItem>
 {
   late Future<ImageProvider> _iconLoadFuture;
+  late String _imageKey;
 
   @override
   void initState() {
     super.initState();
 
-    _iconLoadFuture = _loadAppIcon(Provider.of<AppsService>(context, listen: false));
+    AppsService appsService = Provider.of<AppsService>(context, listen: false);
+    _imageKey = appsService.imageKey(widget.application);
+    _iconLoadFuture = _loadAppIcon(appsService);
+  }
+
+  @override
+  void didUpdateWidget(_AppListItem oldWidget) {
+    super.didUpdateWidget(oldWidget);
+
+    AppsService appsService = Provider.of<AppsService>(context, listen: false);
+    String imageKey = appsService.imageKey(widget.application);
+    if (imageKey != _imageKey) {
+      _imageKey = imageKey;
+      _iconLoadFuture = _loadAppIcon(appsService);
+    }
   }
 
   @override

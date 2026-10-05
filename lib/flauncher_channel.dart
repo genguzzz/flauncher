@@ -65,6 +65,13 @@ class FLauncherChannel {
 
   Future<void> startAmbientMode() async => await _methodChannel.invokeMethod("startAmbientMode");
 
+  Future<Map<String, dynamic>> getSystemStats() async {
+    Map<dynamic, dynamic> map = await _methodChannel.invokeMethod("getSystemStats");
+    return map.cast<String, dynamic>();
+  }
+
+  Future<void> releaseSystemStats() async => await _methodChannel.invokeMethod("releaseSystemStats");
+
   void addAppsChangedListener(void Function(Map<String, dynamic>) listener) =>
       _appsEventChannel.receiveBroadcastStream().listen((event) {
         Map<dynamic, dynamic> eventMap = event;

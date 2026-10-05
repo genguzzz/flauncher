@@ -32,10 +32,14 @@ const _showCategoryTitles = "show_category_titles";
 const _showDateInStatusBar = "show_date_in_status_bar";
 const _showTimeInStatusBar = "show_time_in_status_bar";
 const _timeFormat = "time_format";
+const _showSystemStats = "show_system_stats";
+const _newAppsCategory = "new_apps_category";
+const _apiToken = "api_token";
 
 class SettingsService extends ChangeNotifier {
   static final defaultDateFormat = "EEEE d";
   static final defaultTimeFormat = "H:mm";
+  static const defaultNewAppsCategory = "新应用";
   final SharedPreferences _sharedPreferences;
 
 
@@ -58,6 +62,15 @@ class SettingsService extends ChangeNotifier {
   String get dateFormat => _sharedPreferences.getString(_dateFormat) ?? defaultDateFormat;
 
   String get timeFormat => _sharedPreferences.getString(_timeFormat) ?? defaultTimeFormat;
+
+  /// Show the CPU / memory indicator in the status bar.
+  bool get showSystemStats => _sharedPreferences.getBool(_showSystemStats) ?? true;
+
+  /// Name of the category newly installed apps are added to; empty disables auto-adding.
+  String get newAppsCategory => _sharedPreferences.getString(_newAppsCategory) ?? defaultNewAppsCategory;
+
+  /// Bearer token required by the control API; empty means no authentication.
+  String get apiToken => _sharedPreferences.getString(_apiToken) ?? "";
 
   SettingsService(
     this._sharedPreferences
@@ -108,5 +121,77 @@ class SettingsService extends ChangeNotifier {
 
   Future<void> setShowTimeInStatusBar(bool show) async {
     return set(_showTimeInStatusBar, show);
+  }
+
+  Future<void> setShowSystemStats(bool show) async {
+    return set(_showSystemStats, show);
+  }
+
+  Future<void> setNewAppsCategory(String name) async {
+    await _sharedPreferences.setString(_newAppsCategory, name.trim());
+    notifyListeners();
+  }
+
+  Future<void> setApiToken(String token) async {
+    await _sharedPreferences.setString(_apiToken, token);
+    notifyListeners();
+  }
+
+  /// All settings as JSON-friendly values, keyed by their preference names.
+  Map<String, dynamic> toJson() => {
+    _appHighlightAnimationEnabledKey: appHighlightAnimationEnabled,
+    _appKeyClickEnabledKey: appKeyClickEnabled,
+    _autoHideAppBar: autoHideAppBarEnabled,
+    _gradientUuidKey: gradientUuid,
+    _backButtonAction: backButtonAction,
+    _dateFormat: dateFormat,
+    _timeFormat: timeFormat,
+    _showCategoryTitles: showCategoryTitles,
+    _showDateInStatusBar: showDateInStatusBar,
+    _showTimeInStatusBar: showTimeInStatusBar,
+    _showSystemStats: showSystemStats,
+    _newAppsCategory: newAppsCategory,
+    _apiToken: apiToken.isEmpty ? "" : "***",
+  };
+
+  static const Set<String> boolKeys = {
+    _appHighlightAnimationEnabledKey, _appKeyClickEnabledKey, _autoHideAppBar, _showCategoryTitles,
+    _showDateInStatusBar, _showTimeInStatusBar, _showSystemStats,
+  };
+
+  static const Set<String> stringKeys = {
+    _backButtonAction, _dateFormat, _timeFormat, _newAppsCategory, _apiToken,
+  };
+
+  /// Key of the gradient setting; applying it goes through the WallpaperService.
+  static const String gradientKey = _gradientUuidKey;
+
+  /// Writes plain (bool / string) settings. Throws [ArgumentError] on unknown keys or bad types.
+  Future<void> applyJson(Map<String, dynamic> values) async {
+    for (final entry in values.entries) {
+      final key = entry.key, value = entry.value;
+      if (boolKeys.contains(key)) {
+        if (value is! bool) throw ArgumentError("$key must be a boolean");
+      }
+      else if (stringKeys.contains(key)) {
+        if (value is! String) throw ArgumentError("$key must be a string");
+        if (key == _backButtonAction && !const ["", "CLOCK", "SCREENSAVER"].contains(value)) {
+          throw ArgumentError("$key must be one of \"\", \"CLOCK\", \"SCREENSAVER\"");
+        }
+      }
+      else {
+        throw ArgumentError("unknown setting $key");
+      }
+    }
+    for (final entry in values.entries) {
+      final value = entry.value;
+      if (value is bool) {
+        await _sharedPreferences.setBool(entry.key, value);
+      }
+      else {
+        await _sharedPreferences.setString(entry.key, entry.key == _newAppsCategory ? (value as String).trim() : value);
+      }
+    }
+    notifyListeners();
   }
 }

@@ -58,6 +58,7 @@ class _AppCardState extends State<AppCard> with SingleTickerProviderStateMixin {
   bool _moving = false;
 
   late Future<Tuple2<AppImageType, ImageProvider>> _appImageLoadFuture;
+  late String _imageKey;
   late final AnimationController _animation = AnimationController(
     vsync: this,
     lowerBound: 0,
@@ -72,7 +73,22 @@ class _AppCardState extends State<AppCard> with SingleTickerProviderStateMixin {
     super.initState();
 
     FocusManager.instance.addHighlightModeListener(_focusHighlightModeChanged);
-    _appImageLoadFuture = _loadAppBannerOrIcon(Provider.of<AppsService>(context, listen: false));
+    AppsService appsService = Provider.of<AppsService>(context, listen: false);
+    _imageKey = appsService.imageKey(widget.application);
+    _appImageLoadFuture = _loadAppBannerOrIcon(appsService);
+  }
+
+  @override
+  void didUpdateWidget(AppCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+
+    // The state survives app updates (keyed by package name): reload the banner when it changed.
+    AppsService appsService = Provider.of<AppsService>(context, listen: false);
+    String imageKey = appsService.imageKey(widget.application);
+    if (imageKey != _imageKey) {
+      _imageKey = imageKey;
+      _appImageLoadFuture = _loadAppBannerOrIcon(appsService);
+    }
   }
 
   @override

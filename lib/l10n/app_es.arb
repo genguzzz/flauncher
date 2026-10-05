@@ -32,9 +32,7 @@
     "@formattedDate": {
         "placeholders": {
             "dateString": {
-                "type": {
-                    "type": "String"
-                }
+                "type": "String"
             }
         }
     },
@@ -42,9 +40,7 @@
     "@formattedTime": {
         "placeholders": {
             "timeString": {
-                "type": {
-                    "type": "String"
-                }
+                "type": "String"
             }
         }
     },
@@ -70,7 +66,9 @@
     "removeFrom": "Remover de {name}",
     "@removeFrom": {
         "placeholders": {
-            "name": { "type": "String" }
+            "name": {
+                "type": "String"
+            }
         }
     },
     "renameCategory": "Renombrar categoría",
@@ -103,5 +101,27 @@
     "typeInTheHourFormat": "Escriba el formato de hora",
     "uninstall": "Desinstalar",
     "wallpaper": "Fondo de pantalla",
-    "withEllipsisAddTo": "Añadir a..."
+    "withEllipsisAddTo": "Añadir a...",
+    "newAppsCategory": "Categoría para aplicaciones nuevas",
+    "newAppsCategoryDisabled": "No añadir aplicaciones nuevas automáticamente",
+    "showSystemStats": "Indicador de CPU / memoria",
+    "statsCpu": "CPU {value}%",
+    "statsMemory": "Mem {used}/{total}G",
+    "@statsCpu": {
+        "placeholders": {
+            "value": {
+                "type": "String"
+            }
+        }
+    },
+    "@statsMemory": {
+        "placeholders": {
+            "used": {
+                "type": "String"
+            },
+            "total": {
+                "type": "String"
+            }
+        }
+    }
 }

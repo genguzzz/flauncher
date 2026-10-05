@@ -29,7 +29,7 @@ import 'package:flutter/material.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:provider/provider.dart';
 import 'package:tuple/tuple.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'package:flauncher/l10n/app_localizations.dart';
 
 import '../rounded_switch_list_tile.dart';
 import 'back_button_actions.dart';
@@ -126,6 +126,24 @@ class SettingsPanelPage extends StatelessWidget {
                     ),
                     onPressed: () async => await _backButtonActionDialog(context),
                   ),
+                  TextButton(
+                    child: Row(
+                      children: [
+                        const Icon(Icons.new_releases_outlined),
+                        Container(width: 8),
+                        Expanded(
+                          child: Text(localizations.newAppsCategory, style: Theme.of(context).textTheme.bodyMedium),
+                        ),
+                        Text(
+                          settingsService.newAppsCategory.isEmpty
+                              ? localizations.newAppsCategoryDisabled
+                              : settingsService.newAppsCategory,
+                          style: Theme.of(context).textTheme.bodySmall,
+                        ),
+                      ],
+                    ),
+                    onPressed: () async => await _newAppsCategoryDialog(context),
+                  ),
                   RoundedSwitchListTile(
                     value: settingsService.appHighlightAnimationEnabled,
                     onChanged: (value) => settingsService.setAppHighlightAnimationEnabled(value),
@@ -199,6 +217,37 @@ class SettingsPanelPage extends StatelessWidget {
 
     if (newAction != null) {
       await service.setBackButtonAction(newAction);
+    }
+  }
+
+  Future<void> _newAppsCategoryDialog(BuildContext context) async {
+    AppLocalizations localizations = AppLocalizations.of(context)!;
+    SettingsService service = context.read<SettingsService>();
+    List<String> names = context.read<AppsService>().categories.map((category) => category.name).toList();
+    if (!names.contains(SettingsService.defaultNewAppsCategory)) {
+      names.add(SettingsService.defaultNewAppsCategory);
+    }
+
+    final choice = await showDialog<String>(
+        context: context,
+        builder: (context) => SimpleDialog(
+            title: Text(localizations.newAppsCategory),
+            children: [
+              for (final name in names)
+                SimpleDialogOption(
+                  child: Text(name),
+                  onPressed: () => Navigator.pop(context, name),
+                ),
+              SimpleDialogOption(
+                child: Text(localizations.newAppsCategoryDisabled),
+                onPressed: () => Navigator.pop(context, ""),
+              ),
+            ]
+        )
+    );
+
+    if (choice != null) {
+      await service.setNewAppsCategory(choice);
     }
   }
 
