@@ -39,10 +39,10 @@ Changes:
 
 ```sh
 ./tv-build.sh            # armeabi-v7a release, android:debuggable=true, signed with the TV key
-~/Code/skyworth-tv/tv-install.sh build/app/outputs/flutter-apk/app-armeabi-v7a-release.apk
+../../tools/tv-install.sh build/app/outputs/flutter-apk/app-armeabi-v7a-release.apk   # from the TvOP workspace (external/flauncher)
 ```
 
-`tv-build.sh` reads `FLAUNCHER_KEYSTORE` (default `~/Code/skyworth-tv/remote-keys/release.keystore`),
+`tv-build.sh` reads `FLAUNCHER_KEYSTORE` (default `<tvop>/toolbox/release.keystore`, the TvOP workspace [genguzzz/tvop](https://github.com/genguzzz/tvop) this repo is a submodule of),
 `FLAUNCHER_KEYSTORE_PASSWORD`, `FLAUNCHER_SIGNING_KEY_ALIAS`, `BUILD_NAME`/`BUILD_NUMBER` (default from
 `pubspec.yaml`; the version code must stay above 20). It removes any `.idsig` so adb never uses incremental
 install. The manifest is debuggable (via a placeholder, not `buildType.debuggable`, which would make Flutter

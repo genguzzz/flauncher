@@ -1,10 +1,11 @@
 #!/usr/bin/env bash
 # Builds the TV custom FLauncher (armeabi-v7a release, debuggable, signed with the TV key) and
-# prints the APK path. Install it with ~/Code/skyworth-tv/tv-install.sh <apk> (never incremental).
+# prints the APK path. Install it with <tvop>/tools/tv-install.sh <apk> (never incremental).
 #
 # Env:
 #   FLUTTER                  flutter binary            (default ~/Code/flutter/bin/flutter)
-#   FLAUNCHER_KEYSTORE       keystore path             (default ~/Code/skyworth-tv/remote-keys/release.keystore)
+#   FLAUNCHER_KEYSTORE       keystore path             (default <tvop>/toolbox/release.keystore; <tvop> = the TvOP workspace
+#                            this repo is a submodule of (external/flauncher), else ~/Code/tvop)
 #   FLAUNCHER_KEYSTORE_PASSWORD / FLAUNCHER_SIGNING_KEY_PASSWORD   (default shimpass)
 #   FLAUNCHER_SIGNING_KEY_ALIAS                                  (default shim)
 #   BUILD_NAME / BUILD_NUMBER   version name / code     (default from pubspec.yaml; code must stay > 20)
@@ -12,7 +13,9 @@ set -euo pipefail
 cd "$(dirname "$0")"
 
 FLUTTER=${FLUTTER:-$HOME/Code/flutter/bin/flutter}
-export FLAUNCHER_KEYSTORE=${FLAUNCHER_KEYSTORE:-$HOME/Code/skyworth-tv/remote-keys/release.keystore}
+TVOP=$(cd "$(dirname "$0")/../.." && pwd)
+[ -f "$TVOP/toolbox/build.sh" ] || TVOP=$HOME/Code/tvop
+export FLAUNCHER_KEYSTORE=${FLAUNCHER_KEYSTORE:-$TVOP/toolbox/release.keystore}
 export FLAUNCHER_KEYSTORE_PASSWORD=${FLAUNCHER_KEYSTORE_PASSWORD:-shimpass}
 export FLAUNCHER_SIGNING_KEY_PASSWORD=${FLAUNCHER_SIGNING_KEY_PASSWORD:-$FLAUNCHER_KEYSTORE_PASSWORD}
 export FLAUNCHER_SIGNING_KEY_ALIAS=${FLAUNCHER_SIGNING_KEY_ALIAS:-shim}
