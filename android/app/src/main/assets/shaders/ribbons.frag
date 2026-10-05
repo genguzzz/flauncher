@@ -1,21 +1,25 @@
 // FLauncher "ribbons": deep indigo sky with slow blue / violet aurora ribbons and soft bokeh,
-// in the palette of the default picture wallpaper. Cheap: no noise loops, a handful of sines.
+// in the palette of the default picture wallpaper. Cheap: no noise, 8 sines, no exp / pow.
+// @height 432   (render height in pixels, scaled up to the screen)
+// @fps 30
 
 float band(vec2 p, float y0, float amp, float freq, float speed, float phase, float width, float t)
 {
     float y = y0
             + amp * sin(p.x * freq + t * speed + phase)
-            + amp * 0.45 * sin(p.x * freq * 2.13 - t * speed * 1.37 + phase * 1.9)
-            + amp * 0.20 * sin(p.x * freq * 4.71 + t * speed * 0.71);
+            + amp * 0.45 * sin(p.x * freq * 2.13 - t * speed * 1.37 + phase * 1.9);
     float d = p.y - y;
-    // Sharp lower edge, long soft glow above it — the curtain shape of an aurora.
-    float glow = d > 0.0 ? exp(-d / (width * 3.2)) : exp(-(d * d) / (width * width * 0.18));
-    return glow;
+    // Sharp lower edge, long soft glow above it — the curtain shape of an aurora. Rational
+    // falloffs instead of exp(): same shape, a reciprocal instead of an exponential.
+    float a = max(d, 0.0) / (width * 3.2);
+    float b = min(d, 0.0) / (width * 0.42);
+    return 1.0 / ((1.0 + a + 0.5 * a * a) * (1.0 + b * b));
 }
 
 float bokeh(vec2 p, vec2 c, float r)
 {
-    return smoothstep(r, r * 0.55, length(p - c));
+    vec2 d = p - c;
+    return smoothstep(r * r, r * r * 0.3, dot(d, d));   // squared distance: no sqrt
 }
 
 void main()
@@ -46,7 +50,8 @@ void main()
     color += mix(violet, cyan, h1) * b3 * 0.22;
 
     // Hot core where the main ribbon is brightest.
-    color += vec3(0.55, 0.85, 1.0) * pow(b1, 6.0) * 0.30;
+    float b1c = b1 * b1 * b1;
+    color += vec3(0.55, 0.85, 1.0) * (b1c * b1c) * 0.30;
 
     // Slowly drifting bokeh discs.
     vec2 c1 = vec2(-0.85 * asp, 0.55) + 0.08 * vec2(sin(t * 0.031), cos(t * 0.027));

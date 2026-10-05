@@ -1,4 +1,6 @@
 // From swd543/glsl-wallpapers (MIT, Copyright (c) 2026 swd543), ported to GLSL ES 3.00.
+// @height 540   (render height in pixels, scaled up to the screen)
+// @fps 20
 
 
 

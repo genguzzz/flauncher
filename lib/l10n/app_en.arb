@@ -134,5 +134,7 @@
     "liveWallpaperAurora": "Aurora",
     "liveWallpaperCaustics": "Caustics",
     "liveWallpaperInk": "Ink marble",
-    "liveWallpaperTopo": "Dusk contours"
+    "liveWallpaperTopo": "Dusk contours",
+    "liveWallpaperWaves": "Layered waves",
+    "liveWallpaperMesh": "Mesh gradient"
 }

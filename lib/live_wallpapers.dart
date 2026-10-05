@@ -18,23 +18,39 @@
 
 import 'package:flauncher/l10n/app_localizations.dart';
 
-/// An animated wallpaper: a fragment shader in android/app/src/main/assets/shaders/<id>.frag,
-/// drawn natively with OpenGL ES (see LiveWallpaper.java).
+/// An animated wallpaper: a fragment shader drawn natively with OpenGL ES (see LiveWallpaper.java),
+/// either built in (android/app/src/main/assets/shaders/<id>.frag) or uploaded through the API.
 class LiveWallpaperShader {
   final String id;
-  final String Function(AppLocalizations) name;
+  final bool builtin;
+  final bool custom;
+  /// Preferred render height / frame rate ("// @height" / "// @fps" in the shader), if declared.
+  final int? height;
+  final int? fps;
 
-  const LiveWallpaperShader(this.id, this.name);
-}
+  const LiveWallpaperShader(this.id, {this.builtin = true, this.custom = false, this.height, this.fps});
 
-class LiveWallpapers {
-  static final List<LiveWallpaperShader> all = [
-    LiveWallpaperShader("ribbons", (l) => l.liveWallpaperRibbons),
-    LiveWallpaperShader("aurora", (l) => l.liveWallpaperAurora),
-    LiveWallpaperShader("caustics", (l) => l.liveWallpaperCaustics),
-    LiveWallpaperShader("ink", (l) => l.liveWallpaperInk),
-    LiveWallpaperShader("topo", (l) => l.liveWallpaperTopo),
-  ];
+  /// Localized name of a built-in shader; uploaded shaders show their id.
+  String name(AppLocalizations l) => switch (id) {
+    "ribbons" => l.liveWallpaperRibbons,
+    "aurora" => l.liveWallpaperAurora,
+    "caustics" => l.liveWallpaperCaustics,
+    "ink" => l.liveWallpaperInk,
+    "topo" => l.liveWallpaperTopo,
+    "waves" => l.liveWallpaperWaves,
+    "mesh" => l.liveWallpaperMesh,
+    _ => id,
+  };
 
-  static LiveWallpaperShader? byId(String id) => all.where((s) => s.id == id).firstOrNull;
+  /// Display order of the built-in shaders; uploaded ones follow, by id.
+  static const builtinOrder = ["ribbons", "waves", "mesh", "topo", "ink", "aurora", "caustics"];
+
+  static int compare(LiveWallpaperShader a, LiveWallpaperShader b) {
+    int rank(LiveWallpaperShader s) {
+      final i = builtinOrder.indexOf(s.id);
+      return i < 0 ? builtinOrder.length : i;
+    }
+    final r = rank(a).compareTo(rank(b));
+    return r != 0 ? r : a.id.compareTo(b.id);
+  }
 }

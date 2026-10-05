@@ -52,6 +52,7 @@ class WallpaperService extends ChangeNotifier {
   }
 
   Future<void> _init() async {
+    await refreshLiveWallpapers();
     final directory = await getApplicationDocumentsDirectory();
     _wallpaperFile = File("${directory.path}/wallpaper");
     if (await _wallpaperFile.exists()) {
@@ -79,17 +80,58 @@ class WallpaperService extends ChangeNotifier {
 
   bool get hasWallpaper => _wallpaper != null;
 
+  List<LiveWallpaperShader> _liveWallpapers = [];
+
+  /// Available animated wallpapers (built-in and uploaded).
+  List<LiveWallpaperShader> get liveWallpapers => _liveWallpapers;
+
+  LiveWallpaperShader? liveWallpaperById(String id) => _liveWallpapers.where((s) => s.id == id).firstOrNull;
+
   /// The animated wallpaper drawn over the picture / gradient, or null when off.
-  LiveWallpaperShader? get liveWallpaper => LiveWallpapers.byId(_settingsService.liveWallpaper);
+  LiveWallpaperShader? get liveWallpaper => liveWallpaperById(_settingsService.liveWallpaper);
 
-  int get liveWallpaperFps => _settingsService.liveWallpaperFps;
+  Future<void> refreshLiveWallpapers() async {
+    _liveWallpapers = (await _fLauncherChannel.liveWallpaperList())..sort(LiveWallpaperShader.compare);
+    notifyListeners();
+  }
 
-  int get liveWallpaperHeight => _settingsService.liveWallpaperHeight;
+  /// Uploads (or replaces) a shader; returns the compile error, or null once it is saved.
+  Future<String?> saveLiveWallpaper(String id, String source) async {
+    final error = await _fLauncherChannel.liveWallpaperSave(id, source);
+    if (error == null) await refreshLiveWallpapers();
+    return error;
+  }
+
+  /// Removes an uploaded shader; turns the live wallpaper off if it was showing it and no built-in
+  /// shader has the same id.
+  Future<bool> deleteLiveWallpaper(String id) async {
+    final deleted = await _fLauncherChannel.liveWallpaperDelete(id);
+    await refreshLiveWallpapers();
+    if (_settingsService.liveWallpaper == id && liveWallpaperById(id) == null) {
+      await setLiveWallpaper("");
+    }
+    return deleted;
+  }
+
+  static const _defaultFps = 30;
+  static const _defaultHeight = 432;
+
+  /// Effective frame rate: the setting if set, else the shader's own, else 30.
+  int get liveWallpaperFps {
+    final value = _settingsService.liveWallpaperFps;
+    return value > 0 ? value : liveWallpaper?.fps ?? _defaultFps;
+  }
+
+  /// Effective render height: the setting if set, else the shader's own, else 432.
+  int get liveWallpaperHeight {
+    final value = _settingsService.liveWallpaperHeight;
+    return value > 0 ? value : liveWallpaper?.height ?? _defaultHeight;
+  }
 
   /// Turns the animated wallpaper on ([id] from [LiveWallpapers]) or off (empty string). The picture /
   /// gradient is kept and shows again when it is turned off.
   Future<void> setLiveWallpaper(String id) async {
-    if (id.isNotEmpty && LiveWallpapers.byId(id) == null) {
+    if (id.isNotEmpty && liveWallpaperById(id) == null) {
       throw ArgumentError("unknown live wallpaper $id");
     }
     await _settingsService.setLiveWallpaper(id);

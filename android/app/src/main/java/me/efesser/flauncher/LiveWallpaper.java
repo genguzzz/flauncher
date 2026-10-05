@@ -18,7 +18,6 @@
 
 package me.efesser.flauncher;
 
-import android.content.res.AssetManager;
 import android.opengl.EGL14;
 import android.opengl.EGLConfig;
 import android.opengl.EGLContext;
@@ -33,17 +32,14 @@ import android.util.Log;
 import android.view.Choreographer;
 import android.view.Surface;
 
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
-import java.nio.charset.StandardCharsets;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
 import io.flutter.view.TextureRegistry;
 
 /**
- * Animated wallpaper: a full-screen GLSL ES 3.00 fragment shader (assets/shaders/&lt;name&gt;.frag)
+ * Animated wallpaper: a full-screen GLSL ES 3.00 fragment shader (see {@link ShaderStore})
  * drawn with OpenGL ES on its own thread into a Flutter {@link TextureRegistry.SurfaceProducer},
  * which the Dart side shows with a {@code Texture} widget behind the launcher.
  *
@@ -75,7 +71,7 @@ final class LiveWallpaper implements TextureRegistry.SurfaceProducer.Callback, C
             "uniform vec2 u_res;\n" +
             "#line 1\n";
 
-    private final AssetManager assets;
+    private final ShaderStore store;
     private final TextureRegistry.SurfaceProducer producer;
     private final HandlerThread thread;
     private final Handler handler;
@@ -117,8 +113,8 @@ final class LiveWallpaper implements TextureRegistry.SurfaceProducer.Callback, C
     private int statsGpuSamples;
     private volatile String stats = "";
 
-    LiveWallpaper(AssetManager assets, TextureRegistry textureRegistry, String shader, int width, int height, int fps) {
-        this.assets = assets;
+    LiveWallpaper(ShaderStore store, TextureRegistry textureRegistry, String shader, int width, int height, int fps) {
+        this.store = store;
         this.shader = shader;
         this.width = width;
         this.height = height;
@@ -142,19 +138,37 @@ final class LiveWallpaper implements TextureRegistry.SurfaceProducer.Callback, C
         return producer.id();
     }
 
-    /** Switches the shader; returns false (keeping the current one) if it does not exist. */
+    /**
+     * Switches the shader; returns false (keeping the current one) if it does not exist. Only the
+     * current shader is ever compiled: the previous program is deleted before the new one is built.
+     */
     boolean setShader(String name) {
-        if (!shaderExists(assets, name)) {
+        if (!store.exists(name)) {
             return false;
         }
         handler.post(() -> {
             if (released || name.equals(shader)) return;
             shader = name;
             time = 0;
+            statsStartNanos = 0;
+            stats = "";
             loadProgram();
             drawOnce();
         });
         return true;
+    }
+
+    /** Re-reads the current shader's source (after it was uploaded again). */
+    void reload(String name) {
+        handler.post(() -> {
+            if (released || !name.equals(shader)) return;
+            loadProgram();
+            drawOnce();
+        });
+    }
+
+    String shader() {
+        return shader;
     }
 
     void setFrameRate(int fps) {
@@ -180,14 +194,6 @@ final class LiveWallpaper implements TextureRegistry.SurfaceProducer.Callback, C
             thread.quitSafely();
         });
         producer.release();
-    }
-
-    static boolean shaderExists(AssetManager assets, String name) {
-        try (InputStream ignored = assets.open("shaders/" + name + ".frag")) {
-            return true;
-        } catch (IOException e) {
-            return false;
-        }
     }
 
     private static int clampFps(int fps) {
@@ -391,61 +397,66 @@ final class LiveWallpaper implements TextureRegistry.SurfaceProducer.Callback, C
     }
 
     private void loadProgram() {
+        // Free the previous program first: at most one shader is resident at any time.
+        if (program != 0) {
+            GLES30.glDeleteProgram(program);
+            program = 0;
+        }
         String source;
         try {
-            source = readAsset("shaders/" + shader + ".frag");
+            source = store.read(shader);
         } catch (IOException e) {
             Log.w(TAG, "missing shader " + shader, e);
             return;
         }
-        int vertex = compile(GLES30.GL_VERTEX_SHADER, VERTEX_SHADER);
-        int fragment = compile(GLES30.GL_FRAGMENT_SHADER, FRAGMENT_PREAMBLE + source);
-        if (vertex == 0 || fragment == 0) {
-            GLES30.glDeleteShader(vertex);
-            GLES30.glDeleteShader(fragment);
+        StringBuilder log = new StringBuilder();
+        program = buildProgram(source, log);
+        if (program == 0) {
+            stats = shader + ": " + log.toString().trim();
+            Log.w(TAG, stats);
             return;
         }
-        int next = GLES30.glCreateProgram();
-        GLES30.glAttachShader(next, vertex);
-        GLES30.glAttachShader(next, fragment);
-        GLES30.glLinkProgram(next);
-        GLES30.glDeleteShader(vertex);
-        GLES30.glDeleteShader(fragment);
-        int[] status = new int[1];
-        GLES30.glGetProgramiv(next, GLES30.GL_LINK_STATUS, status, 0);
-        if (status[0] == 0) {
-            Log.w(TAG, "link " + shader + ": " + GLES30.glGetProgramInfoLog(next));
-            GLES30.glDeleteProgram(next);
-            return;
-        }
-        if (program != 0) GLES30.glDeleteProgram(program);
-        program = next;
         timeLocation = GLES30.glGetUniformLocation(program, "u_time");
         resolutionLocation = GLES30.glGetUniformLocation(program, "u_res");
     }
 
-    private int compile(int type, String source) {
+    /** Compiles and links a wallpaper fragment shader body on the current context; 0 (and [log]) on error. */
+    static int buildProgram(String fragmentSource, StringBuilder log) {
+        int vertex = compile(GLES30.GL_VERTEX_SHADER, VERTEX_SHADER, log);
+        int fragment = compile(GLES30.GL_FRAGMENT_SHADER, FRAGMENT_PREAMBLE + fragmentSource, log);
+        if (vertex == 0 || fragment == 0) {
+            GLES30.glDeleteShader(vertex);
+            GLES30.glDeleteShader(fragment);
+            return 0;
+        }
+        int program = GLES30.glCreateProgram();
+        GLES30.glAttachShader(program, vertex);
+        GLES30.glAttachShader(program, fragment);
+        GLES30.glLinkProgram(program);
+        GLES30.glDeleteShader(vertex);
+        GLES30.glDeleteShader(fragment);
+        int[] status = new int[1];
+        GLES30.glGetProgramiv(program, GLES30.GL_LINK_STATUS, status, 0);
+        if (status[0] == 0) {
+            log.append("link: ").append(GLES30.glGetProgramInfoLog(program));
+            GLES30.glDeleteProgram(program);
+            return 0;
+        }
+        return program;
+    }
+
+    private static int compile(int type, String source, StringBuilder log) {
         int id = GLES30.glCreateShader(type);
         GLES30.glShaderSource(id, source);
         GLES30.glCompileShader(id);
         int[] status = new int[1];
         GLES30.glGetShaderiv(id, GLES30.GL_COMPILE_STATUS, status, 0);
         if (status[0] == 0) {
-            Log.w(TAG, "compile " + shader + ": " + GLES30.glGetShaderInfoLog(id));
+            log.append(GLES30.glGetShaderInfoLog(id));
             GLES30.glDeleteShader(id);
             return 0;
         }
         return id;
-    }
-
-    private String readAsset(String path) throws IOException {
-        try (InputStream in = assets.open(path)) {
-            ByteArrayOutputStream out = new ByteArrayOutputStream();
-            byte[] buffer = new byte[8192];
-            int n;
-            while ((n = in.read(buffer)) > 0) out.write(buffer, 0, n);
-            return out.toString(StandardCharsets.UTF_8.name());
-        }
     }
 
     private void destroyGl() {

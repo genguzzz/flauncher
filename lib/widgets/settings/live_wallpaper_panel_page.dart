@@ -17,7 +17,6 @@
  */
 
 import 'package:flauncher/l10n/app_localizations.dart';
-import 'package:flauncher/live_wallpapers.dart';
 import 'package:flauncher/providers/wallpaper_service.dart';
 import 'package:flauncher/widgets/ensure_visible.dart';
 import 'package:flutter/material.dart';
@@ -57,7 +56,7 @@ class LiveWallpaperPanelPage extends StatelessWidget {
           child: ListView(
             children: [
               option("", localizations.liveWallpaperOff),
-              for (final shader in LiveWallpapers.all) option(shader.id, shader.name(localizations)),
+              for (final shader in service.liveWallpapers) option(shader.id, shader.name(localizations)),
             ],
           ),
         ),

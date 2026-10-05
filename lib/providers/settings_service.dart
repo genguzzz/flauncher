@@ -82,11 +82,12 @@ class SettingsService extends ChangeNotifier {
   /// Id of the animated wallpaper shader (see live_wallpapers.dart), empty when off.
   String get liveWallpaper => _sharedPreferences.getString(_liveWallpaper) ?? "";
 
-  /// Frame rate of the animated wallpaper.
-  int get liveWallpaperFps => _sharedPreferences.getInt(_liveWallpaperFps) ?? 30;
+  /// Frame rate of the animated wallpaper; 0 = the shader's own (its "// @fps").
+  int get liveWallpaperFps => _sharedPreferences.getInt(_liveWallpaperFps) ?? 0;
 
-  /// Height in pixels the animated wallpaper is rendered at (scaled up to the screen).
-  int get liveWallpaperHeight => _sharedPreferences.getInt(_liveWallpaperHeight) ?? 540;
+  /// Height in pixels the animated wallpaper is rendered at (scaled up to the screen); 0 = the
+  /// shader's own (its "// @height").
+  int get liveWallpaperHeight => _sharedPreferences.getInt(_liveWallpaperHeight) ?? 0;
 
   SettingsService(
     this._sharedPreferences
@@ -194,8 +195,8 @@ class SettingsService extends ChangeNotifier {
 
   /// Integer settings with their allowed ranges.
   static const Map<String, (int, int)> intKeys = {
-    _liveWallpaperFps: (1, 60),
-    _liveWallpaperHeight: (144, 1080),
+    _liveWallpaperFps: (0, 60),
+    _liveWallpaperHeight: (0, 1080),
   };
 
   /// Key of the live wallpaper setting; applying it goes through the WallpaperService.
@@ -219,7 +220,9 @@ class SettingsService extends ChangeNotifier {
       }
       else if (intKeys.containsKey(key)) {
         final (min, max) = intKeys[key]!;
-        if (value is! int || value < min || value > max) throw ArgumentError("$key must be an integer in $min..$max");
+        if (value is! int || value < min || value > max) {
+          throw ArgumentError("$key must be an integer in $min..$max (0 = the shader's default)");
+        }
       }
       else {
         throw ArgumentError("unknown setting $key");

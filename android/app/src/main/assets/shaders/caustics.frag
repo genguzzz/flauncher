@@ -1,4 +1,7 @@
 // From swd543/glsl-wallpapers (MIT, Copyright (c) 2026 swd543), ported to GLSL ES 3.00.
+// FLauncher: 5 waves instead of 8 and no second cell web (about 2x cheaper).
+// @height 270   (render height in pixels, scaled up to the screen)
+// @fps 20
 
 
 
@@ -85,9 +88,6 @@ void main()
     addWave(p, vec2( 0.000,  1.000), 3.75, 0.25, 0.64, 4.35, t, grad, hxx, hyy, hxy);
     addWave(p, vec2(-0.707,  0.707), 4.35, 0.23, 0.74, 1.30, t, grad, hxx, hyy, hxy);
     addWave(p, vec2(-0.940, -0.342), 5.05, 0.20, 0.84, 5.20, t, grad, hxx, hyy, hxy);
-    addWave(p, vec2(-0.309, -0.951), 5.85, 0.17, 0.95, 3.25, t, grad, hxx, hyy, hxy);
-    addWave(p, vec2( 0.669, -0.743), 6.75, 0.14, 1.08, 0.80, t, grad, hxx, hyy, hxy);
-    addWave(p, vec2( 0.966,  0.259), 7.80, 0.11, 1.22, 4.75, t, grad, hxx, hyy, hxy);
 
     // Refracted ray displacement advects the whole web coherently. The broad
     // gradient moves the water mass; three smaller travelling ripples bend
@@ -109,13 +109,11 @@ void main()
     // A finer second web at its own scale and clock: real water carries
     // several interference scales, so a fine filament mesh crawls over the
     // broad one without ever repeating in sync with it.
-    float eFA, eFB, eFC;
-    cells(vp * 2.45 + vec2(37.13, 19.31), t * 0.9 + 7.0, eFA, eFB, eFC);
+    // FLauncher: the second, finer cell web is dropped (it doubled the cost for a faint mesh).
 
     float ratio = e2 / max(e1, 1e-4);       // 1 on a cell boundary
     float near3 = e3 / max(e1, 1e-4);       // 1 near a three-way junction
     float vertex = smoothstep(0.82, 1.0, near3);
-    float ratioF = eFB / max(eFA, 1e-4);
 
     // Real optical focusing from the same surface. det(J)=0 is a fold
     // caustic. It controls both brightness AND ribbon width: focused segments
@@ -126,7 +124,6 @@ void main()
     float focus = exp(-abs(detJ) * 2.6);
     float core = pow(ratio, mix(5.80, 3.40, focus));
     float halo = pow(ratio, 1.55) * 0.060;
-    float fine = pow(ratioF, 3.20) * 0.11;
     float optical = 0.34 + 0.84 * focus;
 
     // Regional depth: low-frequency brightness variation, like light through
@@ -139,7 +136,6 @@ void main()
     float glow = (core + halo) * (0.55 + 0.45 * near3)
                * optical * (1.0 + 0.38 * vertex) * 0.92;
     glow += pow(near3, 6.0) * 0.16;           // hot point at true vertices
-    glow += fine * 0.65;                       // faint independent mesh
     glow += pow(near3, 2.2) * 0.018;           // ghost front
     glow *= depth;
 

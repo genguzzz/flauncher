@@ -1,4 +1,7 @@
 // From swd543/glsl-wallpapers (MIT, Copyright (c) 2026 swd543), ported to GLSL ES 3.00.
+// FLauncher: one detail octave instead of two.
+// @height 360   (render height in pixels, scaled up to the screen)
+// @fps 20
 
 
 
@@ -104,7 +107,8 @@ void main()
     // Two fine detail octaves; their faster opposing phases make the tendrils
     // crawl over the slower ink bodies without adding another noise sample.
     float det  = vnoise(q * 4.0 + 5.1 * q1 + finePhase);
-    float det2 = vnoise(q * 7.0 + 8.3 * q2 - finePhase * 0.78);
+    // FLauncher: the second detail octave is dropped (one noise sample less, invisible upscaled).
+    float det2 = det;
     // The blend between the two detail octaves also drifts pseudo-randomly.
     float detMix = 0.5 + (mix(fract(pr * 71.13 + 0.37),
                               fract(wr * 71.13 + 0.37), wMix) - 0.5) * 0.36;

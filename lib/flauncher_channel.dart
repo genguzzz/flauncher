@@ -18,6 +18,7 @@
 
 import 'dart:async';
 
+import 'package:flauncher/live_wallpapers.dart';
 import 'package:flutter/services.dart';
 
 class FLauncherChannel {
@@ -53,6 +54,20 @@ class FLauncherChannel {
 
   Future<void> liveWallpaperUpdate({String? shader, int? fps, bool? running}) async =>
       await _methodChannel.invokeMethod("liveWallpaperUpdate", {"shader": shader, "fps": fps, "running": running});
+
+  Future<List<LiveWallpaperShader>> liveWallpaperList() async {
+    final list = await _methodChannel.invokeListMethod<Map>("liveWallpaperList") ?? [];
+    return list.map((e) => LiveWallpaperShader(e["id"] as String,
+        builtin: e["builtin"] as bool, custom: e["custom"] as bool,
+        height: e["height"] as int?, fps: e["fps"] as int?)).toList();
+  }
+
+  /// Saves a shader (compiled first); returns the compile error or null.
+  Future<String?> liveWallpaperSave(String id, String source) async =>
+      await _methodChannel.invokeMethod<String>("liveWallpaperSave", {"id": id, "source": source});
+
+  Future<bool> liveWallpaperDelete(String id) async =>
+      await _methodChannel.invokeMethod<bool>("liveWallpaperDelete", id) ?? false;
 
   /// Rendering statistics of the last 5 s (frame rate, GPU time), or null when not running.
   Future<String?> liveWallpaperStats() async => await _methodChannel.invokeMethod<String>("liveWallpaperStats");

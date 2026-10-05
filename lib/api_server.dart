@@ -25,7 +25,6 @@ import 'dart:ui' as ui;
 import 'package:flauncher/flauncher_channel.dart';
 import 'package:flauncher/gradients.dart';
 import 'package:flauncher/l10n/app_localizations.dart';
-import 'package:flauncher/live_wallpapers.dart';
 import 'package:flauncher/models/app.dart';
 import 'package:flauncher/models/category.dart';
 import 'package:flauncher/providers/apps_service.dart';
@@ -149,6 +148,18 @@ class ApiServer {
         await wallpaper.clearWallpaper();
         return _wallpaperJson();
 
+      case ("GET", "live_wallpapers", false):
+        return _liveWallpapersJson();
+      case ("POST" || "PUT", "live_wallpapers", true):
+        final error = await wallpaper.saveLiveWallpaper(arg!, utf8.decode(await _body(request)));
+        if (error != null) throw _ApiError(HttpStatus.unprocessableEntity, "shader does not compile: $error");
+        return _liveWallpapersJson();
+      case ("DELETE", "live_wallpapers", true):
+        if (!await wallpaper.deleteLiveWallpaper(arg!)) {
+          throw _ApiError(HttpStatus.notFound, "no uploaded shader $arg (built-in shaders cannot be deleted)");
+        }
+        return _liveWallpapersJson();
+
       case ("GET", "apps", false):
         return _appsJson();
       case ("GET", "apps", true):
@@ -189,6 +200,9 @@ class ApiServer {
     "endpoints": [
       "GET  /api/settings", "PUT|POST /api/settings {key: value, ...}",
       "GET  /api/gradients",
+      "GET  /api/live_wallpapers",
+      "PUT|POST /api/live_wallpapers/<id> (GLSL ES 3.00 fragment body; uniforms u_time, u_res; in qt_TexCoord0; out fragColor)",
+      "DELETE /api/live_wallpapers/<id>",
       "GET  /api/wallpaper", "POST /api/wallpaper (image/* body | {\"url\": ...})", "DELETE /api/wallpaper",
       "GET  /api/apps", "GET  /api/apps/<package>",
       "POST /api/apps/<package> {hidden, category, order, remove_from, categories}",
@@ -206,8 +220,8 @@ class ApiServer {
     final values = Map<String, dynamic>.of(body);
     final gradientUuid = values.remove(SettingsService.gradientKey);
     final live = values.remove(SettingsService.liveWallpaperKey);
-    if (live != null && (live is! String || (live.isNotEmpty && LiveWallpapers.byId(live) == null))) {
-      throw ArgumentError("live_wallpaper must be \"\" or one of ${LiveWallpapers.all.map((s) => s.id).join(", ")}");
+    if (live != null && (live is! String || (live.isNotEmpty && wallpaper.liveWallpaperById(live) == null))) {
+      throw ArgumentError("live_wallpaper must be \"\" or one of ${wallpaper.liveWallpapers.map((s) => s.id).join(", ")}");
     }
     FLauncherGradient? gradient;
     if (gradientUuid != null) {
@@ -233,9 +247,16 @@ class ApiServer {
     "gradient_uuid": wallpaper.gradient.uuid,
     "gradient_name": wallpaper.gradient.name,
     "live_wallpaper": wallpaper.liveWallpaper?.id ?? "",
-    "live_wallpapers": LiveWallpapers.all.map((s) => s.id).toList(),
+    "live_wallpapers": wallpaper.liveWallpapers.map((s) => s.id).toList(),
     "live_wallpaper_fps": wallpaper.liveWallpaperFps,
     "live_wallpaper_height": wallpaper.liveWallpaperHeight,
+  };
+
+  Map<String, Object?> _liveWallpapersJson() => {
+    "current": wallpaper.liveWallpaper?.id ?? "",
+    "shaders": wallpaper.liveWallpapers.map((s) => {
+      "id": s.id, "builtin": s.builtin, "custom": s.custom, "height": s.height, "fps": s.fps,
+    }).toList(),
   };
 
   Future<Object?> _setWallpaper(HttpRequest request) async {
