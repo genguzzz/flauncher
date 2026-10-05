@@ -127,5 +127,12 @@
     "showWifiName": "Wi-Fi 名称",
     "networkWired": "有线",
     "networkDisconnected": "未连接",
-    "processManagerNotInstalled": "未安装 TvOP 工具箱进程管理"
+    "processManagerNotInstalled": "未安装 TvOP 工具箱进程管理",
+    "liveWallpaper": "动态壁纸",
+    "liveWallpaperOff": "关闭（使用静态壁纸）",
+    "liveWallpaperRibbons": "蓝色极光",
+    "liveWallpaperAurora": "流彩极光",
+    "liveWallpaperCaustics": "水底光影",
+    "liveWallpaperInk": "金蓝墨流",
+    "liveWallpaperTopo": "暮色等高线"
 }

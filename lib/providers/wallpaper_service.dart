@@ -20,6 +20,7 @@ import 'dart:io';
 
 import 'package:flauncher/flauncher_channel.dart';
 import 'package:flauncher/gradients.dart';
+import 'package:flauncher/live_wallpapers.dart';
 import 'package:flauncher/providers/settings_service.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
@@ -46,6 +47,8 @@ class WallpaperService extends ChangeNotifier {
     _wallpaper = null
   {
     _ready = _init();
+    // Live wallpaper settings (fps, resolution) can also change through the API.
+    _settingsService.addListener(notifyListeners);
   }
 
   Future<void> _init() async {
@@ -69,17 +72,36 @@ class WallpaperService extends ChangeNotifier {
       await _wallpaperFile.writeAsBytes(bytes);
 
       _wallpaper = MemoryImage(bytes);
+      await _settingsService.setLiveWallpaper("");
       notifyListeners();
     }
   }
 
   bool get hasWallpaper => _wallpaper != null;
 
+  /// The animated wallpaper drawn over the picture / gradient, or null when off.
+  LiveWallpaperShader? get liveWallpaper => LiveWallpapers.byId(_settingsService.liveWallpaper);
+
+  int get liveWallpaperFps => _settingsService.liveWallpaperFps;
+
+  int get liveWallpaperHeight => _settingsService.liveWallpaperHeight;
+
+  /// Turns the animated wallpaper on ([id] from [LiveWallpapers]) or off (empty string). The picture /
+  /// gradient is kept and shows again when it is turned off.
+  Future<void> setLiveWallpaper(String id) async {
+    if (id.isNotEmpty && LiveWallpapers.byId(id) == null) {
+      throw ArgumentError("unknown live wallpaper $id");
+    }
+    await _settingsService.setLiveWallpaper(id);
+    notifyListeners();
+  }
+
   /// Sets a picture as wallpaper from encoded image bytes (PNG, JPEG, WebP...).
   Future<void> setWallpaperBytes(Uint8List bytes) async {
     await _ready;
     await _wallpaperFile.writeAsBytes(bytes, flush: true);
     _wallpaper = MemoryImage(bytes);
+    await _settingsService.setLiveWallpaper("");
     notifyListeners();
   }
 
@@ -101,6 +123,7 @@ class WallpaperService extends ChangeNotifier {
     _wallpaper = null;
 
     await _settingsService.setGradientUuid(fLauncherGradient.uuid);
+    await _settingsService.setLiveWallpaper("");
     notifyListeners();
   }
 }

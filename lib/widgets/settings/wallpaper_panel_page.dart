@@ -18,6 +18,7 @@
 
 import 'package:flauncher/providers/wallpaper_service.dart';
 import 'package:flauncher/widgets/settings/gradient_panel_page.dart';
+import 'package:flauncher/widgets/settings/live_wallpaper_panel_page.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:flauncher/l10n/app_localizations.dart';
@@ -35,6 +36,16 @@ class WallpaperPanelPage extends StatelessWidget {
           Divider(),
           TextButton(
             autofocus: true,
+            child: Row(
+              children: [
+                Icon(Icons.auto_awesome),
+                Container(width: 8),
+                Text(localizations.liveWallpaper, style: Theme.of(context).textTheme.bodyMedium),
+              ],
+            ),
+            onPressed: () => Navigator.of(context).pushNamed(LiveWallpaperPanelPage.routeName),
+          ),
+          TextButton(
             child: Row(
               children: [
                 Icon(Icons.gradient),

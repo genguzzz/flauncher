@@ -36,6 +36,9 @@ const _showSystemStats = "show_system_stats";
 const _showWifiName = "show_wifi_name";
 const _newAppsCategory = "new_apps_category";
 const _apiToken = "api_token";
+const _liveWallpaper = "live_wallpaper";
+const _liveWallpaperFps = "live_wallpaper_fps";
+const _liveWallpaperHeight = "live_wallpaper_height";
 
 class SettingsService extends ChangeNotifier {
   static final defaultDateFormat = "EEEE d";
@@ -75,6 +78,15 @@ class SettingsService extends ChangeNotifier {
 
   /// Bearer token required by the control API; empty means no authentication.
   String get apiToken => _sharedPreferences.getString(_apiToken) ?? "";
+
+  /// Id of the animated wallpaper shader (see live_wallpapers.dart), empty when off.
+  String get liveWallpaper => _sharedPreferences.getString(_liveWallpaper) ?? "";
+
+  /// Frame rate of the animated wallpaper.
+  int get liveWallpaperFps => _sharedPreferences.getInt(_liveWallpaperFps) ?? 30;
+
+  /// Height in pixels the animated wallpaper is rendered at (scaled up to the screen).
+  int get liveWallpaperHeight => _sharedPreferences.getInt(_liveWallpaperHeight) ?? 540;
 
   SettingsService(
     this._sharedPreferences
@@ -140,6 +152,11 @@ class SettingsService extends ChangeNotifier {
     notifyListeners();
   }
 
+  Future<void> setLiveWallpaper(String id) async {
+    await _sharedPreferences.setString(_liveWallpaper, id);
+    notifyListeners();
+  }
+
   Future<void> setApiToken(String token) async {
     await _sharedPreferences.setString(_apiToken, token);
     notifyListeners();
@@ -161,6 +178,9 @@ class SettingsService extends ChangeNotifier {
     _showWifiName: showWifiName,
     _newAppsCategory: newAppsCategory,
     _apiToken: apiToken.isEmpty ? "" : "***",
+    _liveWallpaper: liveWallpaper,
+    _liveWallpaperFps: liveWallpaperFps,
+    _liveWallpaperHeight: liveWallpaperHeight,
   };
 
   static const Set<String> boolKeys = {
@@ -171,6 +191,15 @@ class SettingsService extends ChangeNotifier {
   static const Set<String> stringKeys = {
     _backButtonAction, _dateFormat, _timeFormat, _newAppsCategory, _apiToken,
   };
+
+  /// Integer settings with their allowed ranges.
+  static const Map<String, (int, int)> intKeys = {
+    _liveWallpaperFps: (1, 60),
+    _liveWallpaperHeight: (144, 1080),
+  };
+
+  /// Key of the live wallpaper setting; applying it goes through the WallpaperService.
+  static const String liveWallpaperKey = _liveWallpaper;
 
   /// Key of the gradient setting; applying it goes through the WallpaperService.
   static const String gradientKey = _gradientUuidKey;
@@ -188,6 +217,10 @@ class SettingsService extends ChangeNotifier {
           throw ArgumentError("$key must be one of \"\", \"CLOCK\", \"SCREENSAVER\"");
         }
       }
+      else if (intKeys.containsKey(key)) {
+        final (min, max) = intKeys[key]!;
+        if (value is! int || value < min || value > max) throw ArgumentError("$key must be an integer in $min..$max");
+      }
       else {
         throw ArgumentError("unknown setting $key");
       }
@@ -196,6 +229,9 @@ class SettingsService extends ChangeNotifier {
       final value = entry.value;
       if (value is bool) {
         await _sharedPreferences.setBool(entry.key, value);
+      }
+      else if (value is int) {
+        await _sharedPreferences.setInt(entry.key, value);
       }
       else {
         await _sharedPreferences.setString(entry.key, entry.key == _newAppsCategory ? (value as String).trim() : value);

@@ -46,6 +46,16 @@ class FLauncherChannel {
 
   Future<void> launchActivityFromAction(String action) async => await _methodChannel.invokeMethod('launchActivityFromAction', action);
 
+  /// Starts the animated wallpaper renderer; returns its texture id, or null if the shader is unknown.
+  Future<int?> liveWallpaperStart(String shader, int width, int height, int fps) async =>
+      await _methodChannel.invokeMethod<int>("liveWallpaperStart",
+          {"shader": shader, "width": width, "height": height, "fps": fps});
+
+  Future<void> liveWallpaperUpdate({String? shader, int? fps, bool? running}) async =>
+      await _methodChannel.invokeMethod("liveWallpaperUpdate", {"shader": shader, "fps": fps, "running": running});
+
+  Future<void> liveWallpaperStop() async => await _methodChannel.invokeMethod("liveWallpaperStop");
+
   Future<void> launchApp(String packageName) async => await _methodChannel.invokeMethod('launchApp', packageName);
 
   Future<void> openSettings() async => await _methodChannel.invokeMethod('openSettings');

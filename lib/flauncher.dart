@@ -24,6 +24,7 @@ import 'package:flauncher/providers/wallpaper_service.dart';
 import 'package:flauncher/widgets/apps_grid.dart';
 import 'package:flauncher/widgets/category_row.dart';
 import 'package:flauncher/widgets/launcher_alternative_view.dart';
+import 'package:flauncher/widgets/live_wallpaper_view.dart';
 import 'package:flauncher/widgets/focus_aware_app_bar.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -105,6 +106,22 @@ class FLauncher extends StatelessWidget {
   );
 
   Widget _wallpaper(BuildContext context, WallpaperService wallpaperService) {
+    final live = wallpaperService.liveWallpaper;
+    if (live != null) {
+      return SizedBox.expand(
+        key: const Key("background"),
+        child: LiveWallpaperView(
+          shader: live.id,
+          fps: wallpaperService.liveWallpaperFps,
+          renderHeight: wallpaperService.liveWallpaperHeight,
+          placeholder: _staticWallpaper(context, wallpaperService),
+        ),
+      );
+    }
+    return _staticWallpaper(context, wallpaperService);
+  }
+
+  Widget _staticWallpaper(BuildContext context, WallpaperService wallpaperService) {
     if (wallpaperService.wallpaper != null) {
       final physicalSize = MediaQuery.sizeOf(context);
       return Image(

@@ -25,6 +25,7 @@ import 'dart:ui' as ui;
 import 'package:flauncher/flauncher_channel.dart';
 import 'package:flauncher/gradients.dart';
 import 'package:flauncher/l10n/app_localizations.dart';
+import 'package:flauncher/live_wallpapers.dart';
 import 'package:flauncher/models/app.dart';
 import 'package:flauncher/models/category.dart';
 import 'package:flauncher/providers/apps_service.dart';
@@ -204,6 +205,10 @@ class ApiServer {
   Future<Object?> _updateSettings(Map<String, dynamic> body) async {
     final values = Map<String, dynamic>.of(body);
     final gradientUuid = values.remove(SettingsService.gradientKey);
+    final live = values.remove(SettingsService.liveWallpaperKey);
+    if (live != null && (live is! String || (live.isNotEmpty && LiveWallpapers.byId(live) == null))) {
+      throw ArgumentError("live_wallpaper must be \"\" or one of ${LiveWallpapers.all.map((s) => s.id).join(", ")}");
+    }
     FLauncherGradient? gradient;
     if (gradientUuid != null) {
       gradient = FLauncherGradients.all.where((g) => g.uuid == gradientUuid || g.name == gradientUuid).firstOrNull;
@@ -215,6 +220,9 @@ class ApiServer {
     if (gradient != null) {
       await wallpaper.setGradient(gradient);
     }
+    if (live != null) {
+      await wallpaper.setLiveWallpaper(live as String);
+    }
     return _settingsJson();
   }
 
@@ -224,6 +232,10 @@ class ApiServer {
     "custom_picture": wallpaper.hasWallpaper,
     "gradient_uuid": wallpaper.gradient.uuid,
     "gradient_name": wallpaper.gradient.name,
+    "live_wallpaper": wallpaper.liveWallpaper?.id ?? "",
+    "live_wallpapers": LiveWallpapers.all.map((s) => s.id).toList(),
+    "live_wallpaper_fps": wallpaper.liveWallpaperFps,
+    "live_wallpaper_height": wallpaper.liveWallpaperHeight,
   };
 
   Future<Object?> _setWallpaper(HttpRequest request) async {

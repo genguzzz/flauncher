@@ -62,11 +62,14 @@ public class MainActivity extends FlutterActivity
     private SystemStats systemStats;
     private NetworkSummary networkSummary;
     private final String NETWORK_SUMMARY_EVENT_CHANNEL = "me.efesser.flauncher/event_network_summary";
+    private FlutterEngine flutterEngine;
+    private LiveWallpaper liveWallpaper;
 
     @Override
     public void configureFlutterEngine(@NonNull FlutterEngine flutterEngine)
     {
         super.configureFlutterEngine(flutterEngine);
+        this.flutterEngine = flutterEngine;
 
         BinaryMessenger messenger = flutterEngine.getDartExecutor().getBinaryMessenger();
         systemStats = new SystemStats(this);
@@ -102,6 +105,14 @@ public class MainActivity extends FlutterActivity
                     final Map<String, Object> value = stats;
                     runOnUiThread(() -> result.success(value));
                 });
+                case "liveWallpaperStart" -> result.success(liveWallpaperStart(
+                        call.argument("shader"), call.argument("width"), call.argument("height"), call.argument("fps")));
+                case "liveWallpaperUpdate" -> result.success(liveWallpaperUpdate(
+                        call.argument("shader"), call.argument("fps"), call.argument("running")));
+                case "liveWallpaperStop" -> {
+                    liveWallpaperStop();
+                    result.success(null);
+                }
                 case "releaseSystemStats" -> {
                     statsExecutor.execute(() -> systemStats.release());
                     result.success(null);
@@ -124,6 +135,34 @@ public class MainActivity extends FlutterActivity
         super.onResume();
         // SSID reads are redacted while in background; re-read once we are visible again.
         if (networkSummary != null) networkSummary.refresh();
+    }
+
+    @Override
+    protected void onDestroy() {
+        liveWallpaperStop();
+        super.onDestroy();
+    }
+
+    /** Starts (or replaces) the animated wallpaper; returns its Flutter texture id, or null if the shader is unknown. */
+    private Long liveWallpaperStart(String shader, int width, int height, int fps) {
+        liveWallpaperStop();
+        if (!LiveWallpaper.shaderExists(getAssets(), shader)) return null;
+        liveWallpaper = new LiveWallpaper(getAssets(), flutterEngine.getRenderer(), shader, width, height, fps);
+        return liveWallpaper.id();
+    }
+
+    private boolean liveWallpaperUpdate(String shader, Integer fps, Boolean running) {
+        if (liveWallpaper == null) return false;
+        if (fps != null) liveWallpaper.setFrameRate(fps);
+        if (running != null) liveWallpaper.setRunning(running);
+        return shader == null || liveWallpaper.setShader(shader);
+    }
+
+    private void liveWallpaperStop() {
+        if (liveWallpaper != null) {
+            liveWallpaper.release();
+            liveWallpaper = null;
+        }
     }
 
     private List<Map<String, Serializable>> getApplications() {

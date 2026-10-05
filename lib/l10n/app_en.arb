@@ -127,5 +127,12 @@
     "showWifiName": "Wi-Fi name",
     "networkWired": "Wired",
     "networkDisconnected": "Offline",
-    "processManagerNotInstalled": "TvOP toolbox process manager is not installed"
+    "processManagerNotInstalled": "TvOP toolbox process manager is not installed",
+    "liveWallpaper": "Live wallpaper",
+    "liveWallpaperOff": "Off (static wallpaper)",
+    "liveWallpaperRibbons": "Blue ribbons",
+    "liveWallpaperAurora": "Aurora",
+    "liveWallpaperCaustics": "Caustics",
+    "liveWallpaperInk": "Ink marble",
+    "liveWallpaperTopo": "Dusk contours"
 }
