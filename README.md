@@ -20,6 +20,17 @@ Changes:
   the launcher is in the foreground. CPU = whole-device busy from `/proc/stat` deltas (read directly; if
   SELinux denies it, through the TV's own adbd on 127.0.0.1:5555; hidden if neither works). Toggle:
   Settings → Status bar → CPU / 内存指示, or `show_system_stats`.
+- **Status bar items are focusable** (UP from the first row; LEFT/RIGHT between gear, indicator and network;
+  same filled focus highlight as the gear, static, no animation while focused). OK on the CPU / memory
+  indicator starts the TvOP toolbox process manager (`com.gugen.remotekeys/.ProcessActivity`, new task, so
+  BACK returns here; a short message if it is not installed). OK on the network item opens
+  `android.settings.WIFI_SETTINGS`.
+- **Wi-Fi name** next to the network icon: first 4 characters of the SSID (`TP-L`), `有线` on ethernet,
+  `未连接` without a network. VPNs are looked through (physical networks via a ConnectivityManager callback,
+  pushed to Dart only when type/SSID change, no polling). The SSID needs `ACCESS_FINE_LOCATION` (declared,
+  never prompted; `adb shell pm grant me.efesser.flauncher android.permission.ACCESS_FINE_LOCATION`); if the
+  read is redacted it is fetched once per network with `cmd wifi status` through the local adbd, which also
+  grants the permission. Toggle: Settings → Status bar → Wi-Fi 名称, or `show_wifi_name`.
 - **Control HTTP API** on port **10600** (all interfaces), started with the app.
 - Chinese (`zh`) translation; build fixes for Flutter 3.38 (Gradle 8.12, AGP 8.9.1, generated l10n in
   `lib/l10n`, malformed `app_es.arb` placeholders, ABI split list).
@@ -61,11 +72,13 @@ updates immediately. Errors return `{"error": "..."}` with 400/401/404/409/5xx.
 | `POST\|PUT /api/categories/<id or name>` | update any of `name, type, sort, columns (1-20), row_height (20-500), position, apps` (`apps`: listed packages are added if missing and put first, in that order) |
 | `DELETE /api/categories/<id or name>` | delete (apps stay installed) |
 | `GET /api/stats` | `{cpu_percent, cpu_source: proc\|adb\|none, mem_total, mem_available, mem_used, mem_total_gb, mem_used_gb}` |
+| `GET /api/network` | `{type: wifi\|ethernet\|none, ssid, short}` (`short` = the status bar label) |
 | `POST /api/launch/<pkg>` | start the app |
 | `POST /api/refresh` | rescan installed apps (new ones go to `new_apps_category`) |
 
 Setting keys: `app_highlight_animation_enabled`, `app_key_click_enabled`, `auto_hide_app_bar`,
-`show_category_titles`, `show_date_in_status_bar`, `show_time_in_status_bar`, `show_system_stats` (bools);
+`show_category_titles`, `show_date_in_status_bar`, `show_time_in_status_bar`, `show_system_stats`,
+`show_wifi_name` (bools);
 `gradient_uuid` (uuid or name from `/api/gradients`, also removes a picture wallpaper);
 `back_button_action` (`""`, `"CLOCK"`, `"SCREENSAVER"`); `date_format`, `time_format` (ICU patterns, e.g.
 `"EEEE d"`, `"H:mm"`); `new_apps_category` (string, empty = off); `api_token` (string, reported as `***`).
