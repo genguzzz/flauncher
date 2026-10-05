@@ -32,8 +32,13 @@
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
     <uses-permission android:name="android.permission.REQUEST_DELETE_PACKAGES" />
+    <!-- Wi-Fi SSID in the status bar (granted with pm grant / through the local adb, never prompted) -->
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
 
     <queries>
+        <!-- TvOP toolbox (process manager opened from the CPU / memory indicator) -->
+        <package android:name="com.gugen.remotekeys" />
         <intent>
             <action android:name="android.intent.action.MAIN" />
         </intent>

@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import '../providers/settings_service.dart';
 import 'date_time_widget.dart';
 import 'network_widget.dart';
+import 'status_bar_button.dart';
 import 'system_stats_widget.dart';
 
 class FocusAwareAppBar extends StatefulWidget implements PreferredSizeWidget
@@ -65,20 +66,18 @@ class _FocusAwareAppBarState extends State<FocusAwareAppBar>
             selector: (_, service) => service.showSystemStats,
             builder: (context, show, _) => show
               ? Padding(
-                  padding: const EdgeInsets.only(left: 16),
+                  padding: const EdgeInsets.only(left: 6),
                   child: SystemStatsWidget(
-                    textStyle: Theme.of(context).textTheme.titleMedium!.copyWith(
-                      shadows: [
-                        const Shadow(color: Colors.black54, offset: Offset(0, 2), blurRadius: 8)
-                      ],
-                    ),
+                    textStyle: Theme.of(context).textTheme.titleMedium!.copyWith(shadows: statusBarShadows),
                   ),
                 )
               : const SizedBox.shrink(),
           ),
-          const Padding(
-            padding: EdgeInsets.only(left: 16),
-            child: NetworkWidget(),
+          Padding(
+            padding: const EdgeInsets.only(left: 6),
+            child: NetworkWidget(
+              textStyle: Theme.of(context).textTheme.titleMedium!.copyWith(shadows: statusBarShadows),
+            ),
           ),
           Padding(
             padding: const EdgeInsets.only(left: 16, right: 32),

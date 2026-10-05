@@ -1,10 +1,17 @@
+import 'package:flauncher/l10n/app_localizations.dart';
 import 'package:flauncher/providers/network_service.dart';
+import 'package:flauncher/providers/settings_service.dart';
+import 'package:flauncher/widgets/status_bar_button.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+/// Network icon plus the first 4 characters of the Wi-Fi name ("有线" / "未连接" otherwise).
+/// Focusable; OK opens the system Wi-Fi settings.
 class NetworkWidget extends StatelessWidget
 {
-  const NetworkWidget({super.key});
+  final TextStyle? textStyle;
+
+  const NetworkWidget({super.key, this.textStyle});
 
   @override
   Widget build(BuildContext context) {
@@ -59,14 +66,27 @@ class NetworkWidget extends StatelessWidget
           case NetworkType.Unknown: iconData = Icons.link_off; break;
         }
 
-        return Icon(iconData,
-          shadows: const [
-           Shadow(
-             color: Colors.black54,
-             offset: Offset(0, 2),
-             blurRadius: 8
-           )
-          ]
+        final showName = context.select<SettingsService, bool>((settings) => settings.showWifiName);
+        final icon = Icon(iconData, shadows: statusBarShadows);
+
+        return StatusBarButton(
+          onPressed: () => networkService.openWifiSettings(),
+          child: showName
+            ? Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  icon,
+                  const SizedBox(width: 6),
+                  Text(
+                    NetworkService.shortLabel(networkService.physicalType, networkService.ssid,
+                        AppLocalizations.of(context)!),
+                    style: textStyle,
+                    maxLines: 1,
+                    softWrap: false,
+                  ),
+                ],
+              )
+            : icon,
         );
       }
     );

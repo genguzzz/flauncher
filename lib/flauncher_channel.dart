@@ -24,6 +24,7 @@ class FLauncherChannel {
   static const _methodChannel = MethodChannel('me.efesser.flauncher/method');
   static const _appsEventChannel = EventChannel('me.efesser.flauncher/event_apps');
   static const _networkEventChannel = EventChannel('me.efesser.flauncher/event_network');
+  static const _networkSummaryEventChannel = EventChannel('me.efesser.flauncher/event_network_summary');
 
   Future<List<Map<dynamic, dynamic>>> getApplications() async {
     List<Map<dynamic, dynamic>>? applications = await _methodChannel.invokeListMethod("getApplications");
@@ -71,6 +72,23 @@ class FLauncherChannel {
   }
 
   Future<void> releaseSystemStats() async => await _methodChannel.invokeMethod("releaseSystemStats");
+
+  /// {type: wifi|ethernet|none, ssid} of the physical network.
+  Future<Map<String, dynamic>> getNetworkSummary() async {
+    Map<dynamic, dynamic> map = await _methodChannel.invokeMethod("getNetworkSummary");
+    return map.cast<String, dynamic>();
+  }
+
+  /// Starts an explicit activity; false if it does not exist or cannot be started.
+  Future<bool> launchComponent(String packageName, String className) async =>
+      await _methodChannel.invokeMethod<bool>("launchComponent", {"package": packageName, "class": className}) ?? false;
+
+  /// Pushes the network summary now and whenever its type or SSID changes.
+  void addNetworkSummaryListener(void Function(Map<String, dynamic>) listener) =>
+      _networkSummaryEventChannel.receiveBroadcastStream().listen((event) {
+        Map<dynamic, dynamic> eventMap = event;
+        listener(eventMap.cast<String, dynamic>());
+      });
 
   void addAppsChangedListener(void Function(Map<String, dynamic>) listener) =>
       _appsEventChannel.receiveBroadcastStream().listen((event) {

@@ -123,5 +123,9 @@
                 "type": "String"
             }
         }
-    }
+    },
+    "showWifiName": "Nombre de la red Wi-Fi",
+    "networkWired": "Cable",
+    "networkDisconnected": "Sin conexión",
+    "processManagerNotInstalled": "El gestor de procesos de TvOP no está instalado"
 }

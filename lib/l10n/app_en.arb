@@ -123,5 +123,9 @@
                 "type": "String"
             }
         }
-    }
+    },
+    "showWifiName": "Wi-Fi name",
+    "networkWired": "Wired",
+    "networkDisconnected": "Offline",
+    "processManagerNotInstalled": "TvOP toolbox process manager is not installed"
 }

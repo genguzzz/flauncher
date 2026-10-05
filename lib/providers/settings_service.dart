@@ -33,6 +33,7 @@ const _showDateInStatusBar = "show_date_in_status_bar";
 const _showTimeInStatusBar = "show_time_in_status_bar";
 const _timeFormat = "time_format";
 const _showSystemStats = "show_system_stats";
+const _showWifiName = "show_wifi_name";
 const _newAppsCategory = "new_apps_category";
 const _apiToken = "api_token";
 
@@ -65,6 +66,9 @@ class SettingsService extends ChangeNotifier {
 
   /// Show the CPU / memory indicator in the status bar.
   bool get showSystemStats => _sharedPreferences.getBool(_showSystemStats) ?? true;
+
+  /// Show the (shortened) Wi-Fi name next to the network icon.
+  bool get showWifiName => _sharedPreferences.getBool(_showWifiName) ?? true;
 
   /// Name of the category newly installed apps are added to; empty disables auto-adding.
   String get newAppsCategory => _sharedPreferences.getString(_newAppsCategory) ?? defaultNewAppsCategory;
@@ -127,6 +131,10 @@ class SettingsService extends ChangeNotifier {
     return set(_showSystemStats, show);
   }
 
+  Future<void> setShowWifiName(bool show) async {
+    return set(_showWifiName, show);
+  }
+
   Future<void> setNewAppsCategory(String name) async {
     await _sharedPreferences.setString(_newAppsCategory, name.trim());
     notifyListeners();
@@ -150,13 +158,14 @@ class SettingsService extends ChangeNotifier {
     _showDateInStatusBar: showDateInStatusBar,
     _showTimeInStatusBar: showTimeInStatusBar,
     _showSystemStats: showSystemStats,
+    _showWifiName: showWifiName,
     _newAppsCategory: newAppsCategory,
     _apiToken: apiToken.isEmpty ? "" : "***",
   };
 
   static const Set<String> boolKeys = {
     _appHighlightAnimationEnabledKey, _appKeyClickEnabledKey, _autoHideAppBar, _showCategoryTitles,
-    _showDateInStatusBar, _showTimeInStatusBar, _showSystemStats,
+    _showDateInStatusBar, _showTimeInStatusBar, _showSystemStats, _showWifiName,
   };
 
   static const Set<String> stringKeys = {

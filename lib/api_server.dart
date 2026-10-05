@@ -24,13 +24,16 @@ import 'dart:ui' as ui;
 
 import 'package:flauncher/flauncher_channel.dart';
 import 'package:flauncher/gradients.dart';
+import 'package:flauncher/l10n/app_localizations.dart';
 import 'package:flauncher/models/app.dart';
 import 'package:flauncher/models/category.dart';
 import 'package:flauncher/providers/apps_service.dart';
 import 'package:flauncher/providers/settings_service.dart';
+import 'package:flauncher/providers/network_service.dart';
 import 'package:flauncher/providers/stats_service.dart';
 import 'package:flauncher/providers/wallpaper_service.dart';
 import 'package:flutter/foundation.dart' hide Category;
+import 'package:flutter/widgets.dart' show WidgetsBinding, basicLocaleListResolution;
 
 /// JSON control API on port 10600 (all interfaces) so scripts / agents on the LAN can configure
 /// the launcher — the TV's IME cannot type into Flutter views. Every change goes through the
@@ -43,6 +46,7 @@ class ApiServer {
   final AppsService apps;
   final WallpaperService wallpaper;
   final StatsService stats;
+  final NetworkService network;
   final FLauncherChannel channel;
 
   HttpServer? _server;
@@ -52,6 +56,7 @@ class ApiServer {
     required this.apps,
     required this.wallpaper,
     required this.stats,
+    required this.network,
     required this.channel,
   });
 
@@ -165,6 +170,9 @@ class ApiServer {
       case ("GET", "stats", false):
         return _statsJson(await stats.sample());
 
+      case ("GET", "network", false):
+        return _networkJson();
+
       case ("POST", "launch", true):
         return _launch(arg!);
 
@@ -185,7 +193,7 @@ class ApiServer {
       "POST /api/apps/<package> {hidden, category, order, remove_from, categories}",
       "GET  /api/categories", "POST /api/categories {name, type, sort, columns, row_height, position, apps}",
       "GET|POST|DELETE /api/categories/<id or name>",
-      "GET  /api/stats", "POST /api/launch/<package>", "POST /api/refresh",
+      "GET  /api/stats", "GET  /api/network", "POST /api/launch/<package>", "POST /api/refresh",
     ],
   };
 
@@ -484,6 +492,17 @@ class ApiServer {
     "mem_total_gb": double.parse((s.memTotal / (1 << 30)).toStringAsFixed(2)),
     "mem_used_gb": double.parse((s.memUsed / (1 << 30)).toStringAsFixed(2)),
   };
+
+  Future<Map<String, Object?>> _networkJson() async {
+    final summary = await network.summary();
+    final locale = basicLocaleListResolution(
+        WidgetsBinding.instance.platformDispatcher.locales, AppLocalizations.supportedLocales);
+    return {
+      "type": summary.type,
+      "ssid": summary.ssid,
+      "short": NetworkService.shortLabel(summary.type, summary.ssid, lookupAppLocalizations(locale)),
+    };
+  }
 
   Future<Object?> _launch(String packageName) async {
     final app = apps.applicationByPackage(packageName);

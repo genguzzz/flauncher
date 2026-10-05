@@ -60,6 +60,8 @@ public class MainActivity extends FlutterActivity
 
     private final ExecutorService statsExecutor = Executors.newSingleThreadExecutor();
     private SystemStats systemStats;
+    private NetworkSummary networkSummary;
+    private final String NETWORK_SUMMARY_EVENT_CHANNEL = "me.efesser.flauncher/event_network_summary";
 
     @Override
     public void configureFlutterEngine(@NonNull FlutterEngine flutterEngine)
@@ -68,6 +70,7 @@ public class MainActivity extends FlutterActivity
 
         BinaryMessenger messenger = flutterEngine.getDartExecutor().getBinaryMessenger();
         systemStats = new SystemStats(this);
+        networkSummary = new NetworkSummary(this, statsExecutor);
 
         new MethodChannel(messenger, METHOD_CHANNEL).setMethodCallHandler((call, result) -> {
             switch (call.method)
@@ -85,6 +88,9 @@ public class MainActivity extends FlutterActivity
                 case "checkForGetContentAvailability" -> result.success(checkForGetContentAvailability());
                 case "startAmbientMode" -> result.success(startAmbientMode());
                 case "getActiveNetworkInformation" -> result.success(getActiveNetworkInformation());
+                case "getNetworkSummary" -> result.success(networkSummary.current());
+                case "launchComponent" -> result.success(launchComponent(
+                        call.argument("package"), call.argument("class")));
                 case "getSystemStats" -> statsExecutor.execute(() -> {
                     Map<String, Object> stats;
                     try {
@@ -109,6 +115,15 @@ public class MainActivity extends FlutterActivity
 
         new EventChannel(messenger, NETWORK_EVENT_CHANNEL).setStreamHandler(
                 new NetworkEventStreamHandler(this));
+
+        new EventChannel(messenger, NETWORK_SUMMARY_EVENT_CHANNEL).setStreamHandler(networkSummary);
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        // SSID reads are redacted while in background; re-read once we are visible again.
+        if (networkSummary != null) networkSummary.refresh();
     }
 
     private List<Map<String, Serializable>> getApplications() {
@@ -327,6 +342,13 @@ public class MainActivity extends FlutterActivity
         }
 
         return tryStartActivity(intent);
+    }
+
+    private boolean launchComponent(String packageName, String className) {
+        if (packageName == null || className == null) return false;
+        return tryStartActivity(new Intent()
+                .setClassName(packageName, className)
+                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
     }
 
     private boolean openSettings() {

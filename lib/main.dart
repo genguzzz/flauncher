@@ -47,12 +47,14 @@ Future<void> main() async {
   final appsService = AppsService(fLauncherChannel, fLauncherDatabase, settingsService);
   final wallpaperService = WallpaperService(fLauncherChannel, settingsService);
   final statsService = StatsService(fLauncherChannel, settingsService);
+  final networkService = NetworkService(fLauncherChannel);
 
   ApiServer(
     settings: settingsService,
     apps: appsService,
     wallpaper: wallpaperService,
     stats: statsService,
+    network: networkService,
     channel: fLauncherChannel,
   ).start();
 
@@ -61,7 +63,8 @@ Future<void> main() async {
         ChangeNotifierProvider.value(value: settingsService),
         ChangeNotifierProvider.value(value: appsService),
         ChangeNotifierProvider(create: (_) => LauncherState()),
-        ChangeNotifierProvider(create: (_) => NetworkService(fLauncherChannel)),
+        ChangeNotifierProvider.value(value: networkService),
+        Provider.value(value: fLauncherChannel),
         ChangeNotifierProvider.value(value: wallpaperService),
         ChangeNotifierProvider.value(value: statsService),
       ],

@@ -66,6 +66,12 @@ class StatusBarPanelPage extends StatelessWidget {
             title: Text(localizations.showSystemStats),
             secondary: Icon(Icons.memory)
           ),
+          RoundedSwitchListTile(
+            value: settingsService.showWifiName,
+            onChanged: (value) => settingsService.setShowWifiName(value),
+            title: Text(localizations.showWifiName),
+            secondary: Icon(Icons.wifi)
+          ),
         ],
       );
   }

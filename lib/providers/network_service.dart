@@ -17,6 +17,7 @@
  */
 
 import 'package:flauncher/flauncher_channel.dart';
+import 'package:flauncher/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 
 enum NetworkType
@@ -63,6 +64,9 @@ class NetworkService extends ChangeNotifier
   NetworkType         _networkType;
   int                 _wirelessNetworkSignalLevel;
 
+  // Physical (non-VPN) network, pushed by the native side only when it changes.
+  String              _physicalType = "none";
+  String?             _ssid;
 
   NetworkService(this._channel) :
         _hasInternetAccess = false,
@@ -71,6 +75,7 @@ class NetworkService extends ChangeNotifier
         _wirelessNetworkSignalLevel = 0
   {
     _channel.addNetworkChangedListener(_onNetworkChanged);
+    _channel.addNetworkSummaryListener(_onSummary);
 
     _channel
         .getActiveNetworkInformation()
@@ -85,6 +90,38 @@ class NetworkService extends ChangeNotifier
   CellularNetworkType   get   cellularNetworkType           => _cellularNetworkType;
   NetworkType           get   networkType                   => _networkType;
   int                   get   wirelessNetworkSignalLevel    => _wirelessNetworkSignalLevel;
+  /// "wifi", "ethernet" or "none" (VPNs are looked through).
+  String                get   physicalType                  => _physicalType;
+  /// Current Wi-Fi SSID, null if not on Wi-Fi or unknown.
+  String?               get   ssid                          => _ssid;
+
+  /// Short status bar label: first 4 characters of the SSID, or wired / disconnected.
+  static String shortLabel(String type, String? ssid, AppLocalizations localizations) => switch (type) {
+    "wifi" => ssid == null ? "Wi-Fi" : ssid.characters.take(4).toString(),
+    "ethernet" => localizations.networkWired,
+    _ => localizations.networkDisconnected,
+  };
+
+  void _applySummary(Map<String, dynamic> map) {
+    _physicalType = map["type"] as String? ?? "none";
+    _ssid = map["ssid"] as String?;
+  }
+
+  void _onSummary(Map<String, dynamic> map) {
+    final type = _physicalType, ssid = _ssid;
+    _applySummary(map);
+    if (type != _physicalType || ssid != _ssid) {
+      notifyListeners();
+    }
+  }
+
+  Future<void> openWifiSettings() => _channel.launchActivityFromAction("android.settings.WIFI_SETTINGS");
+
+  /// Fresh summary from the native side (control API).
+  Future<({String type, String? ssid})> summary() async {
+    _onSummary(await _channel.getNetworkSummary());
+    return (type: _physicalType, ssid: _ssid);
+  }
 
   CellularNetworkType _getCellularNetworkType(int index)
   {
