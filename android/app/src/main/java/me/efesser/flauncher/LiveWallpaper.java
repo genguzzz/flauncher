@@ -101,6 +101,22 @@ final class LiveWallpaper implements TextureRegistry.SurfaceProducer.Callback, C
     private double time;
     private boolean released;
 
+    // GPU load: a fence per frame gives back-pressure (never queue a frame while the previous one is
+    // still on the GPU), a GL_EXT_disjoint_timer_query gives the GPU time of each frame.
+    private static final int GL_TIME_ELAPSED_EXT = 0x88BF;
+    private static final int GL_GPU_DISJOINT_EXT = 0x8FBB;
+    private long fence;
+    private boolean timerQueries;
+    private int query;
+    private boolean queryPending;
+    private long statsStartNanos;
+    private int statsFrames;
+    private int statsSkipped;
+    private long statsGpuNanos;
+    private long statsGpuMaxNanos;
+    private int statsGpuSamples;
+    private volatile String stats = "";
+
     LiveWallpaper(AssetManager assets, TextureRegistry textureRegistry, String shader, int width, int height, int fps) {
         this.assets = assets;
         this.shader = shader;
@@ -151,6 +167,7 @@ final class LiveWallpaper implements TextureRegistry.SurfaceProducer.Callback, C
             if (released || running == value) return;
             running = value;
             lastFrameNanos = 0;
+            statsStartNanos = 0;
             if (running) scheduleFrame();
         });
     }
@@ -221,11 +238,18 @@ final class LiveWallpaper implements TextureRegistry.SurfaceProducer.Callback, C
             time = (time + (frameTimeNanos - lastFrameNanos) / 1e9) % TIME_WRAP;
         }
         lastFrameNanos = frameTimeNanos;
+        collectGpuTime();
         // Vsync is 60 Hz; skip vsyncs to hit the target rate (2 ms slack for vsync jitter).
         if (frameTimeNanos - lastDrawNanos >= 1_000_000_000L / fps - 2_000_000L) {
-            lastDrawNanos = frameTimeNanos;
-            draw();
+            if (gpuBusy()) {
+                statsSkipped++;
+            } else {
+                lastDrawNanos = frameTimeNanos;
+                draw();
+                statsFrames++;
+            }
         }
+        updateStats(frameTimeNanos);
         scheduleFrame();
     }
 
@@ -240,7 +264,15 @@ final class LiveWallpaper implements TextureRegistry.SurfaceProducer.Callback, C
         GLES30.glUniform1f(timeLocation, (float) time);
         GLES30.glUniform2f(resolutionLocation, width, height);
         GLES30.glBindVertexArray(vertexArray);
+        boolean timed = timerQueries && !queryPending;
+        if (timed) GLES30.glBeginQuery(GL_TIME_ELAPSED_EXT, query);
         GLES30.glDrawArrays(GLES30.GL_TRIANGLES, 0, 3);
+        if (timed) {
+            GLES30.glEndQuery(GL_TIME_ELAPSED_EXT);
+            queryPending = true;
+        }
+        if (fence != 0) GLES30.glDeleteSync(fence);
+        fence = GLES30.glFenceSync(GLES30.GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
         if (!EGL14.eglSwapBuffers(display, eglSurface)) {
             int error = EGL14.eglGetError();
             Log.w(TAG, "eglSwapBuffers failed: 0x" + Integer.toHexString(error));
@@ -248,6 +280,54 @@ final class LiveWallpaper implements TextureRegistry.SurfaceProducer.Callback, C
                 detachSurface();
             }
         }
+    }
+
+    /** True while the previous frame is still being rendered. */
+    private boolean gpuBusy() {
+        if (fence == 0) return false;
+        int status = GLES30.glClientWaitSync(fence, 0, 0);
+        if (status == GLES30.GL_TIMEOUT_EXPIRED) return true;
+        GLES30.glDeleteSync(fence);
+        fence = 0;
+        return false;
+    }
+
+    private void collectGpuTime() {
+        if (!queryPending) return;
+        int[] value = new int[1];
+        GLES30.glGetQueryObjectuiv(query, GLES30.GL_QUERY_RESULT_AVAILABLE, value, 0);
+        if (value[0] == 0) return;
+        GLES30.glGetQueryObjectuiv(query, GLES30.GL_QUERY_RESULT, value, 0);
+        queryPending = false;
+        int[] disjoint = new int[1];
+        GLES30.glGetIntegerv(GL_GPU_DISJOINT_EXT, disjoint, 0);
+        if (disjoint[0] != 0) return;
+        long nanos = value[0] & 0xffffffffL;
+        statsGpuNanos += nanos;
+        statsGpuMaxNanos = Math.max(statsGpuMaxNanos, nanos);
+        statsGpuSamples++;
+    }
+
+    private void updateStats(long now) {
+        if (statsStartNanos == 0) {
+            statsStartNanos = now;
+            return;
+        }
+        long elapsed = now - statsStartNanos;
+        if (elapsed < 5_000_000_000L) return;
+        stats = String.format(java.util.Locale.ROOT,
+                "%s %dx%d target %d fps: drawn %.1f fps, skipped %d (gpu busy), gpu avg %.1f ms max %.1f ms",
+                shader, width, height, fps, statsFrames * 1e9 / elapsed, statsSkipped,
+                statsGpuSamples == 0 ? -1.0 : statsGpuNanos / 1e6 / statsGpuSamples, statsGpuMaxNanos / 1e6);
+        Log.i(TAG, stats);
+        statsStartNanos = now;
+        statsFrames = statsSkipped = statsGpuSamples = 0;
+        statsGpuNanos = statsGpuMaxNanos = 0;
+    }
+
+    /** Last 5 s of rendering statistics (empty until the first 5 s have passed). */
+    String stats() {
+        return stats;
     }
 
     private void initEgl() {
@@ -274,6 +354,13 @@ final class LiveWallpaper implements TextureRegistry.SurfaceProducer.Callback, C
         int[] vao = new int[1];
         GLES30.glGenVertexArrays(1, vao, 0);
         vertexArray = vao[0];
+        String extensions = GLES30.glGetString(GLES30.GL_EXTENSIONS);
+        timerQueries = extensions != null && extensions.contains("GL_EXT_disjoint_timer_query");
+        if (timerQueries) {
+            int[] id = new int[1];
+            GLES30.glGenQueries(1, id, 0);
+            query = id[0];
+        }
     }
 
     private void attachSurface(Surface next) {
@@ -364,6 +451,10 @@ final class LiveWallpaper implements TextureRegistry.SurfaceProducer.Callback, C
     private void destroyGl() {
         if (display == EGL14.EGL_NO_DISPLAY) return;
         detachSurface();
+        if (fence != 0) GLES30.glDeleteSync(fence);
+        if (query != 0) GLES30.glDeleteQueries(1, new int[]{query}, 0);
+        fence = 0;
+        query = 0;
         if (program != 0) GLES30.glDeleteProgram(program);
         if (vertexArray != 0) GLES30.glDeleteVertexArrays(1, new int[]{vertexArray}, 0);
         EGL14.eglMakeCurrent(display, EGL14.EGL_NO_SURFACE, EGL14.EGL_NO_SURFACE, EGL14.EGL_NO_CONTEXT);

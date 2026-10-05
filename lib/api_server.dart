@@ -142,7 +142,7 @@ class ApiServer {
         return FLauncherGradients.all.map((g) => {"uuid": g.uuid, "name": g.name}).toList();
 
       case ("GET", "wallpaper", false):
-        return _wallpaperJson();
+        return {..._wallpaperJson(), "live_wallpaper_stats": await channel.liveWallpaperStats()};
       case ("POST" || "PUT", "wallpaper", false):
         return _setWallpaper(request);
       case ("DELETE", "wallpaper", false):

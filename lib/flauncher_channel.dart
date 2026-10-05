@@ -54,6 +54,9 @@ class FLauncherChannel {
   Future<void> liveWallpaperUpdate({String? shader, int? fps, bool? running}) async =>
       await _methodChannel.invokeMethod("liveWallpaperUpdate", {"shader": shader, "fps": fps, "running": running});
 
+  /// Rendering statistics of the last 5 s (frame rate, GPU time), or null when not running.
+  Future<String?> liveWallpaperStats() async => await _methodChannel.invokeMethod<String>("liveWallpaperStats");
+
   Future<void> liveWallpaperStop() async => await _methodChannel.invokeMethod("liveWallpaperStop");
 
   Future<void> launchApp(String packageName) async => await _methodChannel.invokeMethod('launchApp', packageName);

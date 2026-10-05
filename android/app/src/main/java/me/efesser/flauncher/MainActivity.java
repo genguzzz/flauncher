@@ -109,6 +109,7 @@ public class MainActivity extends FlutterActivity
                         call.argument("shader"), call.argument("width"), call.argument("height"), call.argument("fps")));
                 case "liveWallpaperUpdate" -> result.success(liveWallpaperUpdate(
                         call.argument("shader"), call.argument("fps"), call.argument("running")));
+                case "liveWallpaperStats" -> result.success(liveWallpaper == null ? null : liveWallpaper.stats());
                 case "liveWallpaperStop" -> {
                     liveWallpaperStop();
                     result.success(null);
